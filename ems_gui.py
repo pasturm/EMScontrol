@@ -2,7 +2,7 @@
 
 """Basic EMS voltage control and energy scanning"""
 
-__version__ = '0.0.1'
+__version__ = '0.1.0'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021, TOFWERK'
 
@@ -39,14 +39,15 @@ tps1rc = {
 'DEFL1U': -1,
 'DEFL1D': -1,
 'DEFL1R': -1,
-'DEFL1L': -1
+'DEFL1L': -1,
+'TOFREF': 202
 }
 
 
 # Window element keys that will be saved to a file
 SETPOINTS = {'-ESA_ENERGY-':0, '-TOF_ENERGY-':0, '-ION_ENERGY-':0, '-POLARITY-':0, 
     '-ORIFICE-':0, '-LENS1-':0, '-DEFL1U-':0, '-DEFL1D-':0, '-DEFL1L-':0, '-DEFL1R-':0, 
-    '-ESA_OFFSET-':0, '-MATSUDA-':0, '-LENS2-':0, 
+    '-ESA_OFFSET-':0, '-MATSUDA-':0, '-LENS2-':0, '-DEFL2-':0, '-DEFLFL2-':0, '-REF-':0,
     '-START_ENERGY-':0, '-END_ENERGY-':0, '-STEP_SIZE-':0,'-TIME_PER_STEP-':0}
 
 
@@ -71,8 +72,8 @@ def calculate_EA_voltages(ea_energy, r0 = 0.100, d = 0.0125, polarity = 1):
     """
     r1 = r0-d  # inner cylinder radius, m
     r2 = r0+d  # outer cylinder radius, m
-    V1 = ea_energy*2*math.log(r2/r1)*(math.log(r1)-math.log(r0))/(math.log(r2)-math.log(r1))  # inner cylinder voltage, V
-    V2 = ea_energy*2*math.log(r2/r1) + V1  # outer cylinder voltage, V
+    V1 = polarity*ea_energy*2*math.log(r2/r1)*(math.log(r1)-math.log(r0))/(math.log(r2)-math.log(r1))  # inner cylinder voltage, V
+    V2 = polarity*ea_energy*2*math.log(r2/r1) + V1  # outer cylinder voltage, V
     return V1, V2
 
 
@@ -83,7 +84,8 @@ def set_voltages(values, ion_energy):
     polarity = 1 if (values['-POLARITY-']=='pos') else -1
     V1, V2 = calculate_EA_voltages(float(values['-ESA_ENERGY-']), polarity=polarity)
     V_extractor = (float(values['-ESA_ENERGY-'])-ion_energy)*(-polarity)
-    V_reference = (float(values['-TOF_ENERGY-'])-ion_energy)*(-polarity)
+    V_tofreference = (float(values['-TOF_ENERGY-'])-ion_energy)*(-polarity)
+    V_reference = float(values['-REF-'])
 
     # rv = TwTpsSetTargetValue(tps1rc['ORIFICE'], float(values['-ORIFICE-']))
     # if (rv != TwSuccess): log.error(f'Failed to set value for RC code {tps1rc["ORIFICE"]}: {TwTranslateReturnValue(rv).decode("utf-8")}.')
@@ -105,14 +107,23 @@ def set_voltages(values, ion_energy):
     # if (rv != TwSuccess): log.error(f'Failed to set value for RC code {tps1rc["OUTER_CYL"]}: {TwTranslateReturnValue(rv).decode("utf-8")}.')
     # rv = TwTpsSetTargetValue(tps1rc['MATSUDA'], V_extractor + float(values['-MATSUDA-']))
     # if (rv != TwSuccess): log.error(f'Failed to set value for RC code {tps1rc["MATSUDA"]}: {TwTranslateReturnValue(rv).decode("utf-8")}.')
-    # rv = TwTpsSetTargetValue(tps1rc['REFERENCE'], V_reference)
+    # rv = TwTpsSetTargetValue(tps1rc['REFERENCE'], V_tofreference + V_reference)
     # if (rv != TwSuccess): log.error(f'Failed to set value for RC code {tps1rc["REFERENCE"]}: {TwTranslateReturnValue(rv).decode("utf-8")}.')
-    # rv = TwTpsSetTargetValue(tps1rc['L2'], V_reference + float(values['-LENS2-']))
+    # rv = TwTpsSetTargetValue(tps1rc['L2'], V_tofreference + V_reference + float(values['-LENS2-']))
     # if (rv != TwSuccess): log.error(f'Failed to set value for RC code {tps1rc["L2"]}: {TwTranslateReturnValue(rv).decode("utf-8")}.')
-    # rv = TwTpsSetTargetValue(tps1rc['DEFL'], V_reference + float(values['-DEFL2-']))
+    # rv = TwTpsSetTargetValue(tps1rc['DEFL'], V_tofreference + V_reference + float(values['-DEFL2-']))
     # if (rv != TwSuccess): log.error(f'Failed to set value for RC code {tps1rc["DEFL"]}: {TwTranslateReturnValue(rv).decode("utf-8")}.')
-    # rv = TwTpsSetTargetValue(tps1rc['DEFLFL'], V_reference + float(values['-DEFLFL2-']))
+    # rv = TwTpsSetTargetValue(tps1rc['DEFLFL'], V_tofreference + V_reference + float(values['-DEFLFL2-']))
     # if (rv != TwSuccess): log.error(f'Failed to set value for RC code {tps1rc["DEFLFL"]}: {TwTranslateReturnValue(rv).decode("utf-8")}.')
+    # rv = TwTpsSetTargetValue(tps1rc['TOFREF'], V_tofreference)
+    # if (rv != TwSuccess): log.error(f'Failed to set value for RC code {tps1rc["TOFREF"]}: {TwTranslateReturnValue(rv).decode("utf-8")}.')
+    # log.debug(f"Orifice {values['-ORIFICE-']}|Extractor {V_extractor}|L1 {V_extractor + float(values['-LENS1-'])}"
+    #     f"|InnerCyl {V_extractor + V1:.1f}|OuterCyl {V_extractor + V2:.1f}|Matsuda {V_extractor + float(values['-MATSUDA-']):.1f}"
+    #     f"|Reference {V_reference}|L2 {V_reference + float(values['-LENS2-'])}")
+    log.debug(f"{values['-ORIFICE-']}|{V_extractor}|{V_extractor + float(values['-LENS1-'])}"
+        f"|{V_extractor + V1:.1f}|{V_extractor + V2:.1f}|{V_extractor + float(values['-MATSUDA-']):.1f}"
+        f"|{V_tofreference + V_reference}|{V_tofreference + V_reference + float(values['-LENS2-'])}"
+        f"|{V_tofreference}")
 
 
 def load_setpoints(set_file):
@@ -155,12 +166,13 @@ def make_window():
         sg.Text('Defl 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL2-')],
         [sg.Text('Defl 1 left', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL1L-'),
         sg.Text('Defl Fl 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFLFL2-')],
-        [sg.Text('Defl 1 right', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL1R-')]]
+        [sg.Text('Defl 1 right', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL1R-'),
+        sg.Text('Reference', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-REF-')]]
         )]]
 
     layout += [[sg.Button('Set values', key='-SET_TPS-'), 
-        sg.Input(visible=False, enable_events=True, key='-LOAD-'), sg.FilesBrowse('Open...', initial_folder='setpoints', target='-LOAD-'), 
-        sg.Input(visible=False, enable_events=True, key='-SAVE-'), sg.FileSaveAs('Save...', default_extension = 'set', initial_folder='setpoints', target='-SAVE-')]]
+        sg.Input(visible=False, enable_events=True, do_not_clear=False, key='-LOAD-'), sg.FilesBrowse('Open...', initial_folder='setpoints', target='-LOAD-'), 
+        sg.Input(visible=False, enable_events=True, do_not_clear=False, key='-SAVE-'), sg.FileSaveAs('Save...', default_extension = 'set', initial_folder='setpoints', target='-SAVE-')]]
 
     layout += [[sg.Frame('Scan', 
         [[sg.Text('Start ion energy (eV)', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-START_ENERGY-'),
@@ -208,8 +220,7 @@ def scanning_thread(window, values):
         TwAddLogEntry(h5logtext, 0)
         set_voltages(values, i)
         window['-ION_ENERGY-'].update(value=i)
-        if exit_event.wait(timeout=time_per_step):
-            break
+        if exit_event.wait(timeout=time_per_step): break
         progress += 100 / ((end_energy - start_energy)/step_size)
         window.write_event_value('-PROGRESS-', progress)
 
@@ -280,7 +291,7 @@ def main():
         elif event == '-SAVE-':
             if values[event]!='':
                 save_setpoints(values[event], setpoints, values)
-            log.info(f'Set values saved to {os.path.basename(values[event])}.')
+                log.info(f'Set values saved to {os.path.basename(values[event])}.')
         elif event == '-LOAD-':
             if values[event]!='':
                 setpoints=load_setpoints(values[event])
@@ -288,9 +299,9 @@ def main():
                     window[key].update(value=setpoints[key])
                 log.info(f'Set values loaded from {os.path.basename(values[event])}.')
         elif event == '-SET_TPS-':
-            log.info('TPS voltages set.')
             ion_energy = float(values['-ION_ENERGY-'])
             set_voltages(values, ion_energy)
+            log.info('TPS voltages set.')
 
     TwTpsDisconnect()
     TwCleanupDll()
