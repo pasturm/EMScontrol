@@ -101,9 +101,9 @@ def set_voltages(values, ion_energy):
     # if (rv != TwSuccess): log.error(f'Failed to set value for RC code {tps1rc["DEFL1R"]}: {TwTranslateReturnValue(rv).decode("utf-8")}.')
     # rv = TwTpsSetTargetValue(tps1rc['DEFL1L'], V_extractor + float(values['-DEFL1L-']))
     # if (rv != TwSuccess): log.error(f'Failed to set value for RC code {tps1rc["DEFL1L"]}: {TwTranslateReturnValue(rv).decode("utf-8")}.')
-    # rv = TwTpsSetTargetValue(tps1rc['INNER_CYL'], V_extractor + V1)
+    # rv = TwTpsSetTargetValue(tps1rc['INNER_CYL'], V_extractor + V1 + float(values['-ESA_OFFSET-']))
     # if (rv != TwSuccess): log.error(f'Failed to set value for RC code {tps1rc["INNER_CYL"]}: {TwTranslateReturnValue(rv).decode("utf-8")}.')
-    # rv = TwTpsSetTargetValue(tps1rc['OUTER_CYL'], V_extractor + V2)
+    # rv = TwTpsSetTargetValue(tps1rc['OUTER_CYL'], V_extractor + V2 + float(values['-ESA_OFFSET-']))
     # if (rv != TwSuccess): log.error(f'Failed to set value for RC code {tps1rc["OUTER_CYL"]}: {TwTranslateReturnValue(rv).decode("utf-8")}.')
     # rv = TwTpsSetTargetValue(tps1rc['MATSUDA'], V_extractor + float(values['-MATSUDA-']))
     # if (rv != TwSuccess): log.error(f'Failed to set value for RC code {tps1rc["MATSUDA"]}: {TwTranslateReturnValue(rv).decode("utf-8")}.')
@@ -120,8 +120,10 @@ def set_voltages(values, ion_energy):
     # log.debug(f"Orifice {values['-ORIFICE-']}|Extractor {V_extractor}|L1 {V_extractor + float(values['-LENS1-'])}"
     #     f"|InnerCyl {V_extractor + V1:.1f}|OuterCyl {V_extractor + V2:.1f}|Matsuda {V_extractor + float(values['-MATSUDA-']):.1f}"
     #     f"|Reference {V_reference}|L2 {V_reference + float(values['-LENS2-'])}")
+    # Show actual TPS voltages as debug message: Orifice|Extractor|Lens1|Inner|Outer|Matsuda|Reference|Lens2|TOFreference
     log.debug(f"{values['-ORIFICE-']}|{V_extractor}|{V_extractor + float(values['-LENS1-'])}"
-        f"|{V_extractor + V1:.1f}|{V_extractor + V2:.1f}|{V_extractor + float(values['-MATSUDA-']):.1f}"
+        f"|{V_extractor + V1 + float(values['-ESA_OFFSET-']):.1f}|{V_extractor + V2 + float(values['-ESA_OFFSET-']):.1f}"
+        f"|{V_extractor + float(values['-MATSUDA-']):.1f}"
         f"|{V_tofreference + V_reference}|{V_tofreference + V_reference + float(values['-LENS2-'])}"
         f"|{V_tofreference}")
 
@@ -158,7 +160,7 @@ def make_window():
     layout += [[sg.Frame('Voltages (V)', 
         [[sg.Text('Orifice', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-ORIFICE-'),
         sg.Text('Matsuda', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-MATSUDA-')],
-        [sg.Text('Lens 1', size=(15,1)), sg.Input(default_text='90', size=(6,1), key='-LENS1-'),
+        [sg.Text('Lens 1', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-LENS1-'),
         sg.Text('ESA offset', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-ESA_OFFSET-')],
         [sg.Text('Defl 1 up', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL1U-'),
         sg.Text('Lens 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-LENS2-')],
