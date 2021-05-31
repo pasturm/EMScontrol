@@ -2,7 +2,7 @@
 
 """Basic EMS voltage control and energy scanning"""
 
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021, TOFWERK'
 
@@ -40,7 +40,9 @@ tps1rc = {
 'DEFL1D': -1,
 'DEFL1R': -1,
 'DEFL1L': -1,
-'TOFREF': 202
+'TOFREF': 202,
+'TOFEXTR1': 201,
+'RG': 2
 }
 
 
@@ -48,7 +50,8 @@ tps1rc = {
 SETPOINTS = {'-ESA_ENERGY-':0, '-TOF_ENERGY-':0, '-ION_ENERGY-':0, '-POLARITY-':0, 
     '-ORIFICE-':0, '-LENS1-':0, '-DEFL1U-':0, '-DEFL1D-':0, '-DEFL1L-':0, '-DEFL1R-':0, 
     '-ESA_OFFSET-':0, '-MATSUDA-':0, '-LENS2-':0, '-DEFL2-':0, '-DEFLFL2-':0, '-REF-':0,
-    '-START_ENERGY-':0, '-END_ENERGY-':0, '-STEP_SIZE-':0,'-TIME_PER_STEP-':0}
+    '-START_ENERGY-':0, '-END_ENERGY-':0, '-STEP_SIZE-':0,'-TIME_PER_STEP-':0,
+    '-TOFEXTR1-':0, '-RG-':0}
 
 
 # exit event to abort energy scanning
@@ -84,8 +87,12 @@ def set_voltages(values, ion_energy):
     polarity = 1 if (values['-POLARITY-']=='pos') else -1
     V1, V2 = calculate_EA_voltages(float(values['-ESA_ENERGY-']), polarity=polarity)
     V_extractor = (float(values['-ESA_ENERGY-'])-ion_energy)*(-polarity)
-    V_tofreference = (float(values['-TOF_ENERGY-'])-ion_energy)*(-polarity)
     V_reference = float(values['-REF-'])
+    V_tofreference = (float(values['-TOF_ENERGY-'])-ion_energy)*(-polarity)  # from LV channel -> with sign
+    V_tofextractor1 = (float(values['-TOF_ENERGY-'])-ion_energy + float(values['-TOFEXTR1-']))*(-polarity)  # from LV channel -> with sign, relative to TOF reference
+    rg_correction = 0.25  # ion energy correction of RG in V/eV
+    V_rg = float(values['-RG-']) + ion_energy*rg_correction  # -RG- is set value at 0 eV ion energy
+    
 
     # rv = TwTpsSetTargetValue(tps1rc['ORIFICE'], float(values['-ORIFICE-']))
     # if (rv != TwSuccess): log.error(f'Failed to set value for RC code {tps1rc["ORIFICE"]}: {TwTranslateReturnValue(rv).decode("utf-8")}.')
@@ -117,15 +124,20 @@ def set_voltages(values, ion_energy):
     # if (rv != TwSuccess): log.error(f'Failed to set value for RC code {tps1rc["DEFLFL"]}: {TwTranslateReturnValue(rv).decode("utf-8")}.')
     # rv = TwTpsSetTargetValue(tps1rc['TOFREF'], V_tofreference)
     # if (rv != TwSuccess): log.error(f'Failed to set value for RC code {tps1rc["TOFREF"]}: {TwTranslateReturnValue(rv).decode("utf-8")}.')
+    # rv = TwTpsSetTargetValue(tps1rc['TOFEXTR1'], V_tofextractor1)
+    # if (rv != TwSuccess): log.error(f'Failed to set value for RC code {tps1rc["TOFEXTR1"]}: {TwTranslateReturnValue(rv).decode("utf-8")}.')
+    # rv = TwTpsSetTargetValue(tps1rc['RG'], V_rg)
+    # if (rv != TwSuccess): log.error(f'Failed to set value for RC code {tps1rc["RG"]}: {TwTranslateReturnValue(rv).decode("utf-8")}.')
+
     # log.debug(f"Orifice {values['-ORIFICE-']}|Extractor {V_extractor}|L1 {V_extractor + float(values['-LENS1-'])}"
     #     f"|InnerCyl {V_extractor + V1:.1f}|OuterCyl {V_extractor + V2:.1f}|Matsuda {V_extractor + float(values['-MATSUDA-']):.1f}"
     #     f"|Reference {V_reference}|L2 {V_reference + float(values['-LENS2-'])}")
-    # Show actual TPS voltages as debug message: Orifice|Extractor|Lens1|Inner|Outer|Matsuda|Reference|Lens2|TOFreference
+    # Show actual TPS voltages as debug message: Orifice|Extractor|Lens1|Inner|Outer|MaV_tofextractor1tsuda|Reference|Lens2|TOFreference|TOFExtr1|RG
     log.debug(f"{values['-ORIFICE-']}|{V_extractor}|{V_extractor + float(values['-LENS1-'])}"
         f"|{V_extractor + V1 + float(values['-ESA_OFFSET-']):.1f}|{V_extractor + V2 + float(values['-ESA_OFFSET-']):.1f}"
         f"|{V_extractor + float(values['-MATSUDA-']):.1f}"
         f"|{V_tofreference + V_reference}|{V_tofreference + V_reference + float(values['-LENS2-'])}"
-        f"|{V_tofreference}")
+        f"|{V_tofreference}|{V_tofextractor1}|{V_rg}")
 
 
 def load_setpoints(set_file):
@@ -169,7 +181,9 @@ def make_window():
         [sg.Text('Defl 1 left', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL1L-'),
         sg.Text('Defl Fl 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFLFL2-')],
         [sg.Text('Defl 1 right', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL1R-'),
-        sg.Text('Reference', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-REF-')]]
+        sg.Text('Reference', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-REF-')],
+        [sg.Text('TOF Extractor 1', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-TOFEXTR1-'),
+        sg.Text('RG', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-RG-')]]
         )]]
 
     layout += [[sg.Button('Set values', key='-SET_TPS-'), 
@@ -195,11 +209,17 @@ def make_window():
 def scanning_thread(window, values):
     """Energy scanning"""
     progress = 0
+
+    start_energy = float(values['-START_ENERGY-'])  # start energy, eV
+    end_energy = float(values['-END_ENERGY-'])  # end energy, eV
+    step_size = float(values['-STEP_SIZE-'])  # energy step stize, eV
+    time_per_step = float(values['-TIME_PER_STEP-'])  # time per energy step, s
+
     # TwTpsSaveSetFile('TwTpsTempSetFile'.encode('utf-8'))
-    set_voltages(values, float(values['-START_ENERGY-']))
+    set_voltages(values, start_energy)
     window['-ION_ENERGY-'].update(value=values['-START_ENERGY-'])
 
-    # start acquisition 
+    # start acquisition (-> one data file per scan) 
     if TwDaqActive():
         log.warning('Stopping already running acquisition...')
         TwStopAcquisition()
@@ -210,15 +230,15 @@ def scanning_thread(window, values):
     log.info('Starting TofDaq acquisition.')
     if exit_event.wait(timeout=1): exit_event.set()
 
-    start_energy = float(values['-START_ENERGY-'])
-    end_energy = float(values['-END_ENERGY-'])  # end energy, eV
-    step_size = float(values['-STEP_SIZE-'])  # energy step stize, eV
-    time_per_step = float(values['-TIME_PER_STEP-'])  # time per energy step, s
+    TwAddAttributeDouble('/'.encode('utf-8'), 'start energy (eV)'.encode('utf-8'), start_energy)
+    TwAddAttributeDouble('/'.encode('utf-8'), 'end energy (eV)'.encode('utf-8'), end_energy)
+    TwAddAttributeDouble('/'.encode('utf-8'), 'step size (eV)'.encode('utf-8'), step_size)
+    TwAddAttributeDouble('/'.encode('utf-8'), 'time_per_step (s)'.encode('utf-8'), time_per_step)
 
     # start energy scan
     log.info('Scanning...')
     for i in np.arange(start_energy, end_energy+1e-6, step_size, dtype=float):
-        h5logtext = f'ion_energy: {i:.1f}'.encode('utf-8')
+        h5logtext = f'{i:.1f} eV'.encode('utf-8')
         TwAddLogEntry(h5logtext, 0)
         set_voltages(values, i)
         window['-ION_ENERGY-'].update(value=i)
