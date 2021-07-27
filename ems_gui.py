@@ -2,7 +2,7 @@
 
 """Basic EMS voltage control and energy scanning"""
 
-__version__ = '0.1.1'
+__version__ = '0.1.2'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021, TOFWERK'
 
@@ -58,7 +58,6 @@ SETPOINTS = {'-ESA_ENERGY-':0, '-TOF_ENERGY-':0, '-ION_ENERGY-':0, '-POLARITY-':
 exit_event = threading.Event()
 
 
-# Function definitions --------------------------------------------------------
 def calculate_EA_voltages(ea_energy, r0 = 0.100, d = 0.0125, polarity = 1):
     """
     Calculates the cylinder electrode potentials for a given energy.
@@ -159,7 +158,7 @@ def make_window():
     """Make GUI window"""
     sg.SetOptions(text_justification='right')
 
-    menu_def = [['&Settings', ['&TPS IP']], ['&Help', ['&About']]]
+    menu_def = [['&Settings', ['&TPS IP address']], ['&Help', ['&About']]]
     layout = [[sg.Menu(menu_def, key='-MENU-')]]
 
     layout += [[sg.Frame('Energies (eV)', 
@@ -215,7 +214,7 @@ def scanning_thread(window, values):
     step_size = float(values['-STEP_SIZE-'])  # energy step stize, eV
     time_per_step = float(values['-TIME_PER_STEP-'])  # time per energy step, s
 
-    # TwTpsSaveSetFile('TwTpsTempSetFile'.encode('utf-8'))
+    # TwTpsSaveSetFile('TwTpsTempSetFile'.encode())
     set_voltages(values, start_energy)
     window['-ION_ENERGY-'].update(value=values['-START_ENERGY-'])
 
@@ -224,21 +223,21 @@ def scanning_thread(window, values):
         log.warning('Stopping already running acquisition...')
         TwStopAcquisition()
         if exit_event.wait(timeout=5): exit_event.set()
-    TwSaveIniFile(''.encode('utf-8'))
-    TwSetDaqParameter('DataFileName'.encode('utf-8'), 'EMSscan_<year>-<month>-<day>_<hour>h<minute>m<second>s.h5'.encode('utf-8'))
+    TwSaveIniFile(''.encode())
+    TwSetDaqParameter('DataFileName'.encode(), 'EMSscan_<year>-<month>-<day>_<hour>h<minute>m<second>s.h5'.encode())
     TwStartAcquisition()
     log.info('Starting TofDaq acquisition.')
     if exit_event.wait(timeout=1): exit_event.set()
 
-    TwAddAttributeDouble('/'.encode('utf-8'), 'start energy (eV)'.encode('utf-8'), start_energy)
-    TwAddAttributeDouble('/'.encode('utf-8'), 'end energy (eV)'.encode('utf-8'), end_energy)
-    TwAddAttributeDouble('/'.encode('utf-8'), 'step size (eV)'.encode('utf-8'), step_size)
-    TwAddAttributeDouble('/'.encode('utf-8'), 'time_per_step (s)'.encode('utf-8'), time_per_step)
+    TwAddAttributeDouble('/'.encode(), 'start energy (eV)'.encode(), start_energy)
+    TwAddAttributeDouble('/'.encode(), 'end energy (eV)'.encode(), end_energy)
+    TwAddAttributeDouble('/'.encode(), 'step size (eV)'.encode(), step_size)
+    TwAddAttributeDouble('/'.encode(), 'time_per_step (s)'.encode(), time_per_step)
 
     # start energy scan
     log.info('Scanning...')
     for i in np.arange(start_energy, end_energy+1e-6, step_size, dtype=float):
-        h5logtext = f'{i:.1f} eV'.encode('utf-8')
+        h5logtext = f'{i:.1f} eV'.encode()
         TwAddLogEntry(h5logtext, 0)
         set_voltages(values, i)
         window['-ION_ENERGY-'].update(value=i)
@@ -249,8 +248,8 @@ def scanning_thread(window, values):
     log.info('Stopping acquisition.')
     TwStopAcquisition()
     time.sleep(1)
-    TwLoadIniFile(''.encode('utf-8'))
-    # TwTpsLoadSetFile('TwTpsTempSetFile'.encode('utf-8'))
+    TwLoadIniFile(''.encode())
+    # TwTpsLoadSetFile('TwTpsTempSetFile'.encode())
     log.info('Fertig.')
     [window[key].update(disabled=value) for key, value in {'-START-': False, '-STOP-': True}.items()]
 
@@ -266,12 +265,12 @@ def main():
     # connect to TPS2
     tps_ip = 'localhost'  # TPS2 host name or IP
     if TwTofDaqRunning():
-        rv = TwTpsConnect2(tps_ip.encode('utf-8'), 1)
+        rv = TwTpsConnect2(tps_ip.encode(), 1)
         if rv != TwSuccess:
             log.error('Failed to connect to TPS2.')
         else:
             log.info(f'TPS2 connected via {tps_ip}.')
-            # TwTpsSaveSetFile('TwTpsTempSetFile'.encode('utf-8'))
+            # TwTpsSaveSetFile('TwTpsTempSetFile'.encode())
     else:
         log.error('TofDaqRec not running.')
 
@@ -288,16 +287,16 @@ def main():
                 __copyright__, title = 'About', icon = 'tw.ico', image='tw.png')
         elif event == '-PROGRESS-':
             window['-PROGRESS BAR-'].update_bar(values[event], 100)
-        elif event == 'TPS IP':
-            new_tps_ip=sg.popup_get_text('TPS IP', default_text=tps_ip, size=(15,1), icon='tw.ico')
+        elif event == 'TPS IP address':
+            new_tps_ip=sg.popup_get_text('TPS IP address', default_text=tps_ip, size=(15,1), icon='tw.ico')
             if new_tps_ip!=None:
                 tps_ip = new_tps_ip
-                rv = TwTpsConnect2(new_tps_ip.encode('utf-8'), 1)
+                rv = TwTpsConnect2(new_tps_ip.encode(), 1)
                 if rv != TwSuccess:
                     log.error('Failed to connect to TPS2.')
                 else:
                     log.info(f'TPS2 connected via {tps_ip}.')
-                    # TwTpsSaveSetFile('TwTpsTempSetFile'.encode('utf-8'))
+                    # TwTpsSaveSetFile('TwTpsTempSetFile'.encode())
         elif event == '-START-':
             for key, state in {'-START-': True, '-STOP-': False}.items():
                 window[key].update(disabled=state)

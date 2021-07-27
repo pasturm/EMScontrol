@@ -10,7 +10,6 @@ Based on the TOFWERK TofDaq API and PySimpleGUI.
 ## How to run
 ```
 python ems_gui.py
-
 ```
 
 ## How to build a binary
