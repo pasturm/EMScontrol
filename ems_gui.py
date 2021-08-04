@@ -93,7 +93,8 @@ def set_voltages_ea(values, ion_energy):
     """
     Set all ion_energy-dependent voltages.
     """
-    polarity = 1 if (values['-POLARITY-']=='pos') else -1
+    polarity = 1 
+    # polarity = 1 if (values['-POLARITY-']=='pos') else -1
     V1, V2 = calculate_EA_voltages(float(values['-ESA_ENERGY-']), polarity=polarity)
     V_extractor = (float(values['-ESA_ENERGY-'])-ion_energy)*(-polarity)
     V_reference = float(values['-REF-'])
@@ -198,7 +199,8 @@ def make_window():
         [[sg.Text('ESA energy', size=(15,1)), sg.Input(default_text='100', size=(6,1), key='-ESA_ENERGY-'), 
         sg.Text('TOF energy', size=(15,1)), sg.Input(default_text='60', size=(6,1), key='-TOF_ENERGY-')],
         [sg.Text('Ion energy', size=(15,1)), sg.Input(default_text='50', size=(6,1), key='-ION_ENERGY-'),
-        sg.Text('Polarity', size=(15,1)), sg.Combo(values=('pos', 'neg'), default_value='pos', readonly=True, key='-POLARITY-')]]
+        # sg.Text('Polarity', size=(15,1)), sg.Combo(values=('pos', 'neg'), default_value='pos', readonly=True, key='-POLARITY-')]]
+        sg.Combo(visible=False, values=('pos', 'neg'), default_value='pos', readonly=True, key='-POLARITY-')]]
         )]]
 
     layout += [[sg.Frame('Voltages (V)', 
