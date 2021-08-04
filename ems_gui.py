@@ -2,7 +2,7 @@
 
 """Basic EMS voltage control and energy scanning"""
 
-__version__ = '0.1.3'
+__version__ = '0.1.4'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021, TOFWERK'
 
@@ -196,34 +196,34 @@ def make_window():
     layout = [[sg.Menu(menu_def, key='-MENU-')]]
 
     layout += [[sg.Frame('Energies (eV)', 
-        [[sg.Text('ESA energy', size=(15,1)), sg.Input(default_text='100', size=(6,1), key='-ESA_ENERGY-'), 
-        sg.Text('TOF energy', size=(15,1)), sg.Input(default_text='60', size=(6,1), key='-TOF_ENERGY-')],
-        [sg.Text('Ion energy', size=(15,1)), sg.Input(default_text='50', size=(6,1), key='-ION_ENERGY-'),
+        [[sg.Text('Ion energy', size=(15,1)), sg.Input(default_text='50', size=(6,1), key='-ION_ENERGY-'),
+        sg.Text('ESA energy', size=(15,1)), sg.Input(default_text='100', size=(6,1), key='-ESA_ENERGY-'), 
+        sg.Text('TOF energy', size=(15,1)), sg.Input(default_text='60', size=(6,1), key='-TOF_ENERGY-'),
         # sg.Text('Polarity', size=(15,1)), sg.Combo(values=('pos', 'neg'), default_value='pos', readonly=True, key='-POLARITY-')]]
         sg.Combo(visible=False, values=('pos', 'neg'), default_value='pos', readonly=True, key='-POLARITY-')]]
         )]]
 
     layout += [[sg.Frame('Voltages (V)', 
         [[sg.Text('Orifice', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-ORIFICE-'),
-        sg.Text('Matsuda', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-MATSUDA-')],
+        sg.Text('Matsuda', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-MATSUDA-'),
+        sg.Text('TOF Extractor 1', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-TOFEXTR1-')],
         [sg.Text('Lens 1', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-LENS1-'),
-        sg.Text('ESA offset', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-ESA_OFFSET-')],
+        sg.Text('ESA offset', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-ESA_OFFSET-'),
+        sg.Text('TOF Extractor 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-TOFEXTR2-')],
         [sg.Text('Defl 1 up', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL1U-'),
-        sg.Text('Lens 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-LENS2-')],
-        [sg.Text('Defl 1 down', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL1D-'),
-        sg.Text('Defl 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL2-')],
-        [sg.Text('Defl 1 left', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL1L-'),
-        sg.Text('Defl Fl 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFLFL2-')],
-        [sg.Text('Defl 1 right', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL1R-'),
-        sg.Text('Reference', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-REF-')],
-        [sg.Text('TOF Extractor 1', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-TOFEXTR1-'),
-        sg.Text('RG', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-RG-')],
-        [sg.Text('TOF Extractor 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-TOFEXTR2-'),
+        sg.Text('Lens 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-LENS2-'),
         sg.Text('TOF Pulse', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-TOFPULSE-')],
-        [sg.Text('RB', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-RB-'),
+        [sg.Text('Defl 1 down', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL1D-'),
+        sg.Text('Defl 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL2-'),
+        sg.Text('RG', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-RG-')],
+        [sg.Text('Defl 1 left', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL1L-'),
+        sg.Text('Defl Fl 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFLFL2-'),
+        sg.Text('RB', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-RB-')],
+        [sg.Text('Defl 1 right', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL1R-'),
+        sg.Text('Reference', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-REF-'),
         sg.Text('Drift', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DRIFT-')],
-        [sg.Text('PA', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-PA-'),
-        sg.Text('MCP', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-MCP-')],
+        [sg.Text('', size=(1,1)), sg.Text('', size=(1,1)), sg.Text('PA', size=(57,1)), sg.Input(default_text='0', size=(6,1), key='-PA-')],
+        [sg.Text('', size=(1,1)), sg.Text('', size=(1,1)), sg.Text('MCP', size=(57,1)), sg.Input(default_text='0', size=(6,1), key='-MCP-')],
         [sg.Input(visible=False, default_text='1000', key='-HVPOS-'),
         sg.Input(visible=False, default_text='-4000', key='-HVNEG-'),
         sg.Input(visible=False, default_text='1', key='-HVSUPPLY-')]]
@@ -235,16 +235,16 @@ def make_window():
 
     layout += [[sg.Frame('Scan', 
         [[sg.Text('Start ion energy (eV)', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-START_ENERGY-'),
-        sg.Text('End ion energy (eV)', size=(15,1)), sg.Input(default_text='100', size=(6,1), key='-END_ENERGY-')],
-        [sg.Text('Step size (eV)', size=(15,1)), sg.Input(default_text='10', size=(6,1), key='-STEP_SIZE-'),
-        sg.Text('Time per step (s)', size=(15,1)), sg.Input(default_text='1', size=(6,1), key='-TIME_PER_STEP-')],
+        sg.Text('End ion energy (eV)', size=(15,1)), sg.Input(default_text='100', size=(6,1), key='-END_ENERGY-'),
+        sg.Text('Step size (eV)', size=(15,1)), sg.Input(default_text='10', size=(6,1), key='-STEP_SIZE-')],
+        [sg.Text('Time per step (s)', size=(15,1)), sg.Input(default_text='1', size=(6,1), key='-TIME_PER_STEP-')],
         [sg.Button('Start', key='-START-'), sg.Button('Cancel', key='-STOP-'),
-        sg.ProgressBar(max_value=100, orientation='h', size=(24, 10), key='-PROGRESS BAR-')]]
+        sg.ProgressBar(max_value=100, orientation='h', size=(41, 10), key='-PROGRESS BAR-')]]
         )]]
 
-    layout += [[sg.Text('Log')], [sg.Multiline(size=(65,10), autoscroll=True, 
+    layout += [sg.Text('Log')], [sg.Multiline(size=(80,10), autoscroll=True, 
         reroute_stdout=True, echo_stdout_stderr=True, write_only=True, key='-LOG_OUTPUT-',
-        right_click_menu=['', ['&Clear']])]]
+        right_click_menu=['', ['&Clear']])]
        
     return sg.Window('EMS control | TOFWERK', layout, icon='tw.ico', resizable=True, finalize=True)
 
