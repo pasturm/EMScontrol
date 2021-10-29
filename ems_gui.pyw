@@ -2,7 +2,7 @@
 
 """Basic EMS voltage control and energy scanning"""
 
-__version__ = '0.1.4'
+__version__ = '0.1.5'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021, TOFWERK'
 
@@ -32,14 +32,14 @@ tps1rc = {
 'L1': 18,
 'EP': 19,
 'REFERENCE': 117,
-'ORIFICE': -1,
-'INNER_CYL': -1,
-'OUTER_CYL': -1,
-'MATSUDA': -1,
-'DEFL1U': -1,
-'DEFL1D': -1,
-'DEFL1R': -1,
-'DEFL1L': -1,
+'ORIFICE': 2500,
+'INNER_CYL': 2501,
+'OUTER_CYL': 2502,
+'MATSUDA': 2503,
+'DEFL2U': 2504,
+'DEFL2D': 2505,
+'DEFL2L': 2506,
+'DEFL2R': 2507,
 'TOFREF': 202,
 'TOFEXTR1': 201,
 'TOFEXTR2': 200,
@@ -57,8 +57,8 @@ tps1rc = {
 
 # Window element keys that will be saved to a file
 SETPOINTS = {'-ESA_ENERGY-':0, '-TOF_ENERGY-':0, '-ION_ENERGY-':0, '-POLARITY-':0, 
-    '-ORIFICE-':0, '-LENS1-':0, '-DEFL1U-':0, '-DEFL1D-':0, '-DEFL1L-':0, '-DEFL1R-':0, 
-    '-ESA_OFFSET-':0, '-MATSUDA-':0, '-LENS2-':0, '-DEFL2-':0, '-DEFLFL2-':0, '-REF-':0,
+    '-ORIFICE-':0, '-LENS1-':0, '-DEFL2U-':0, '-DEFL2D-':0, '-DEFL2L-':0, '-DEFL2R-':0, 
+    '-ESA_OFFSET-':0, '-MATSUDA-':0, '-LENS2-':0, '-DEFL-':0, '-DEFLFL-':0, '-REF-':0,
     '-START_ENERGY-':0, '-END_ENERGY-':0, '-STEP_SIZE-':0,'-TIME_PER_STEP-':0,
     '-TOFEXTR1-':0, '-RG-':0, '-RB-':0, '-TOFEXTR2-':0, '-TOFPULSE-':0, '-DRIFT-':0,
     '-PA-':0, '-MCP-':0, '-HVSUPPLY-':0, '-HVPOS-':0, '-HVNEG-':0}
@@ -103,45 +103,42 @@ def set_voltages_ea(values, ion_energy):
     rg_correction = 0.25  # ion energy correction of RG in V/eV
     V_rg = float(values['-RG-']) + ion_energy*rg_correction  # -RG- is set value at 0 eV ion energy
 
-    # rv = TwTpsSetTargetValue(tps1rc['ORIFICE'], float(values['-ORIFICE-']))
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['ORIFICE']}: {TwTranslateReturnValue(rv).decode()}.")
-    # rv = TwTpsSetTargetValue(tps1rc['IONEX'], V_extractor)
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['IONEX']}: {TwTranslateReturnValue(rv).decode()}.")
-    # rv = TwTpsSetTargetValue(tps1rc['L1'], V_extractor + float(values['-LENS1-']))
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['L1']}: {TwTranslateReturnValue(rv).decode()}.")
-    # rv = TwTpsSetTargetValue(tps1rc['DEFL1U'], V_extractor + float(values['-DEFL1U-']))
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFL1U']}: {TwTranslateReturnValue(rv).decode()}.")
-    # rv = TwTpsSetTargetValue(tps1rc['DEFL1D'], V_extractor + float(values['-DEFL1D-']))
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFL1D']}: {TwTranslateReturnValue(rv).decode()}.")
-    # rv = TwTpsSetTargetValue(tps1rc['DEFL1R'], V_extractor + float(values['-DEFL1R-']))
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFL1R']}: {TwTranslateReturnValue(rv).decode()}.")
-    # rv = TwTpsSetTargetValue(tps1rc['DEFL1L'], V_extractor + float(values['-DEFL1L-']))
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFL1L']}: {TwTranslateReturnValue(rv).decode()}.")
-    # rv = TwTpsSetTargetValue(tps1rc['INNER_CYL'], V_extractor + V1 + float(values['-ESA_OFFSET-']))
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['INNER_CYL']}: {TwTranslateReturnValue(rv).decode()}.")
-    # rv = TwTpsSetTargetValue(tps1rc['OUTER_CYL'], V_extractor + V2 + float(values['-ESA_OFFSET-']))
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['OUTER_CYL']}: {TwTranslateReturnValue(rv).decode()}.")
-    # rv = TwTpsSetTargetValue(tps1rc['MATSUDA'], V_extractor + float(values['-MATSUDA-']))
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['MATSUDA']}: {TwTranslateReturnValue(rv).decode()}.")
-    # rv = TwTpsSetTargetValue(tps1rc['REFERENCE'], V_tofreference + V_reference)
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['REFERENCE']}: {TwTranslateReturnValue(rv).decode()}.")
-    # rv = TwTpsSetTargetValue(tps1rc['L2'], V_tofreference + V_reference + float(values['-LENS2-']))
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['L2']}: {TwTranslateReturnValue(rv).decode()}.")
-    # rv = TwTpsSetTargetValue(tps1rc['DEFL'], V_tofreference + V_reference + float(values['-DEFL2-']))
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFL']}: {TwTranslateReturnValue(rv).decode()}.")
-    # rv = TwTpsSetTargetValue(tps1rc['DEFLFL'], V_tofreference + V_reference + float(values['-DEFLFL2-']))
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFLFL']}: {TwTranslateReturnValue(rv).decode()}.")
-    # rv = TwTpsSetTargetValue(tps1rc['TOFREF'], V_tofreference)
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['TOFREF']}: {TwTranslateReturnValue(rv).decode()}.")
-    # rv = TwTpsSetTargetValue(tps1rc['TOFEXTR1'], V_tofextractor1)
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['TOFEXTR1']}: {TwTranslateReturnValue(rv).decode()}.")
-    # rv = TwTpsSetTargetValue(tps1rc['RG'], V_rg)
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['RG']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['ORIFICE'], float(values['-ORIFICE-']))
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['ORIFICE']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['IONEX'], V_extractor)
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['IONEX']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['L1'], V_extractor + float(values['-LENS1-']))
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['L1']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['DEFL2U'], V_extractor + float(values['-DEFL2U-']))
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFL2U']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['DEFL2D'], V_extractor + float(values['-DEFL2D-']))
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFL2D']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['DEFL2R'], V_extractor + float(values['-DEFL2R-']))
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFL2R']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['DEFL2L'], V_extractor + float(values['-DEFL2L-']))
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFL2L']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['INNER_CYL'], V_extractor + V1 + float(values['-ESA_OFFSET-']))
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['INNER_CYL']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['OUTER_CYL'], V_extractor + V2 + float(values['-ESA_OFFSET-']))
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['OUTER_CYL']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['MATSUDA'], V_extractor + float(values['-MATSUDA-']))
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['MATSUDA']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['REFERENCE'], V_tofreference + V_reference)
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['REFERENCE']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['L2'], V_tofreference + V_reference + float(values['-LENS2-']))
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['L2']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['DEFL'], V_tofreference + V_reference + float(values['-DEFL-']))
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFL']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['DEFLFL'], V_tofreference + V_reference + float(values['-DEFLFL-']))
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFLFL']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['TOFREF'], V_tofreference)
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['TOFREF']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['TOFEXTR1'], V_tofextractor1)
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['TOFEXTR1']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['RG'], V_rg)
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['RG']}: {TwTranslateReturnValue(rv).decode()}.")
 
-    # log.debug(f"Orifice {values['-ORIFICE-']}|Extractor {V_extractor}|L1 {V_extractor + float(values['-LENS1-'])}"
-    #     f"|InnerCyl {V_extractor + V1:.1f}|OuterCyl {V_extractor + V2:.1f}|Matsuda {V_extractor + float(values['-MATSUDA-']):.1f}"
-    #     f"|Reference {V_reference}|L2 {V_reference + float(values['-LENS2-'])}")
-    # Show actual TPS voltages as debug message: Orifice|Extractor|Lens1|Inner|Outer|MaV_tofextractor1tsuda|Reference|Lens2|TOFreference|TOFExtr1|RG
+    # Show actual TPS voltages as debug message: Orifice|Extractor|Lens1|Inner|Outer|Matsuda|Reference|Lens2|TOFreference|TOFExtr1|RG
     log.debug(f"{values['-ORIFICE-']}|{V_extractor}|{V_extractor + float(values['-LENS1-'])}"
         f"|{V_extractor + V1 + float(values['-ESA_OFFSET-']):.1f}|{V_extractor + V2 + float(values['-ESA_OFFSET-']):.1f}"
         f"|{V_extractor + float(values['-MATSUDA-']):.1f}"
@@ -153,24 +150,24 @@ def set_voltages_tof(values):
     """
     Set all ion_energy-independent (tof) voltages.
     """
-    # rv = TwTpsSetTargetValue(tps1rc['RB'], float(values['-RB-']))
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['RB']}: {TwTranslateReturnValue(rv).decode()}.")
-    # rv = TwTpsSetTargetValue(tps1rc['TOFPULSE'], float(values['-TOFPULSE-']))
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['TOFPULSE']}: {TwTranslateReturnValue(rv).decode()}.")
-    # rv = TwTpsSetTargetValue(tps1rc['TOFEXTR2'], float(values['-TOFEXTR2-']))
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['TOFEXTR2']}: {TwTranslateReturnValue(rv).decode()}.")
-    # rv = TwTpsSetTargetValue(tps1rc['DRIFT'], float(values['-DRIFT-']))
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DRIFT']}: {TwTranslateReturnValue(rv).decode()}.")
-    # rv = TwTpsSetTargetValue(tps1rc['PA'], float(values['-PA-']))
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['PA']}: {TwTranslateReturnValue(rv).decode()}.")
-    # rv = TwTpsSetTargetValue(tps1rc['MCP'], float(values['-MCP-']))
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['MCP']}: {TwTranslateReturnValue(rv).decode()}.")
-    # rv = TwTpsSetTargetValue(tps1rc['HVSUPPLY'], float(values['-HVSUPPLY-']))
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['HVSUPPLY']}: {TwTranslateReturnValue(rv).decode()}.")
-    # rv = TwTpsSetTargetValue(tps1rc['HVPOS'], float(values['-HVPOS-']))
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['HVPOS']}: {TwTranslateReturnValue(rv).decode()}.")
-    # rv = TwTpsSetTargetValue(tps1rc['HVNEG'], float(values['-HVNEG-']))
-    # if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['HVNEG']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['RB'], float(values['-RB-']))
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['RB']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['TOFPULSE'], float(values['-TOFPULSE-']))
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['TOFPULSE']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['TOFEXTR2'], float(values['-TOFEXTR2-']))
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['TOFEXTR2']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['DRIFT'], float(values['-DRIFT-']))
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DRIFT']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['PA'], float(values['-PA-']))
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['PA']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['MCP'], float(values['-MCP-']))
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['MCP']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['HVSUPPLY'], float(values['-HVSUPPLY-']))
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['HVSUPPLY']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['HVPOS'], float(values['-HVPOS-']))
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['HVPOS']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['HVNEG'], float(values['-HVNEG-']))
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['HVNEG']}: {TwTranslateReturnValue(rv).decode()}.")
 
 
 def load_setpoints(set_file):
@@ -210,16 +207,16 @@ def make_window():
         [sg.Text('Lens 1', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-LENS1-'),
         sg.Text('ESA offset', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-ESA_OFFSET-'),
         sg.Text('TOF Extractor 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-TOFEXTR2-')],
-        [sg.Text('Defl 1 up', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL1U-'),
+        [sg.Text('Defl 2 up', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL2U-'),
         sg.Text('Lens 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-LENS2-'),
         sg.Text('TOF Pulse', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-TOFPULSE-')],
-        [sg.Text('Defl 1 down', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL1D-'),
-        sg.Text('Defl 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL2-'),
+        [sg.Text('Defl 2 down', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL2D-'),
+        sg.Text('Defl 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL-'),
         sg.Text('RG', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-RG-')],
-        [sg.Text('Defl 1 left', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL1L-'),
-        sg.Text('Defl Fl 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFLFL2-'),
+        [sg.Text('Defl 2 left', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL2L-'),
+        sg.Text('Defl Fl 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFLFL-'),
         sg.Text('RB', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-RB-')],
-        [sg.Text('Defl 1 right', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL1R-'),
+        [sg.Text('Defl 2 right', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL2R-'),
         sg.Text('Reference', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-REF-'),
         sg.Text('Drift', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DRIFT-')],
         [sg.Text('', size=(1,1)), sg.Text('', size=(1,1)), sg.Text('PA', size=(57,1)), sg.Input(default_text='0', size=(6,1), key='-PA-')],
