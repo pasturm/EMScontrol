@@ -156,14 +156,6 @@ def TwManualContinueNeeded():
 def TwCloseTofDaqRec():
     return libTofDaq._TwCloseTofDaqRec() 
 
-def TwLockBuf(timeout, bufToLock):
-    libTofDaq._TwLockBuf.argtypes = [ct.c_int, ct.c_int]
-    return libTofDaq._TwLockBuf(timeout, bufToLock)
-
-def TwUnLockBuf(bufToUnlock):
-    libTofDaq._TwUnLockBuf.argtypes = [ct.c_int]
-    return libTofDaq._TwUnLockBuf(bufToUnlock)
-	
 def TwIssueDio4Pulse(delay, width):
     libTofDaq._TwIssueDio4Pulse.argtypes = [ct.c_int, ct.c_int]
     return libTofDaq._TwIssueDio4Pulse(delay, width)
@@ -179,6 +171,31 @@ if TOFDAQDLL_REV >= 1204:
 
     def TwSendDioStartSignal():
         return libTofDaq._TwSendDioStartSignal()
+
+def TwSetTimeout(timeout):
+    libTofDaq._TwSetTimeout.restype = None
+    libTofDaq._TwSetTimeout.argtypes = [ct.c_int]
+    return libTofDaq._TwSetTimeout(timeout)
+
+def TwGetTimeout():
+    return libTofDaq._TwGetTimeout()
+
+def TwInitializeDaqDevice():
+    return libTofDaq._TwInitializeDaqDevice()
+
+def TwDioStartDelayActive():
+    libTofDaq._TwDioStartDelayActive.restype = ct.c_bool
+    return libTofDaq._TwDioStartDelayActive()
+
+if TOFDAQDLL_REV >= 1204:
+    def TwSendDioStartSignal():
+        return libTofDaq._TwSendDioStartSignal()
+
+    def TwWaitingForDioStartSignal():
+        libTofDaq._TwWaitingForDioStartSignal.restype = ct.c_bool
+        return libTofDaq._TwWaitingForDioStartSignal()
+
+
 
 #----------------------- CONFIGURATION FUNCTIONS -------------------------------
 
@@ -334,14 +351,50 @@ def TwWaitForEndOfAcquisition(timeout):
     return libTofDaq._TwWaitForEndOfAcquisition(timeout)
 
 def TwGetMassCalib(mode, nbrParams, p, nbrPoints, mass, tof, weight):
-    libTofDaq._TwGetMassCalib.argtypes = [ndpointer(np.int, shape=1),
-                                                  ndpointer(np.int),
-                                                  _double_array,
-                                                  ndpointer(np.int, shape=1),
-                                                  _double_array,
-                                                  _double_array,
-                                                  _double_array]
+    libTofDaq._TwGetMassCalib.argtypes = [ndpointer(np.int32, shape=1),
+                                          ndpointer(np.int32,shape=1),
+                                          ct.c_void_p if p is None else _double_array,
+                                          ndpointer(np.int32, shape=1),
+                                          ct.c_void_p if mass is None else _double_array,
+                                          ct.c_void_p if tof is None else _double_array,
+                                          ct.c_void_p if weight is None else _double_array]
     return libTofDaq._TwGetMassCalib(mode, nbrParams, p, nbrPoints, mass, tof, weight)
+
+def TwGetMassCalibEx(mode, nbrParams, p, nbrPoints, mass, tof, weight, label):
+    libTofDaq._TwGetMassCalibEx.argtypes = [ndpointer(np.int32, shape=1),
+                                          ndpointer(np.int32,shape=1),
+                                          ct.c_void_p if p is None else _double_array,
+                                          ndpointer(np.int32, shape=1),
+                                          ct.c_void_p if mass is None else _double_array,
+                                          ct.c_void_p if tof is None else _double_array,
+                                          ct.c_void_p if weight is None else _double_array,
+                                          ct.c_void_p if weight is None else ct.c_char_p]
+    return libTofDaq._TwGetMassCalibEx(mode, nbrParams, p, nbrPoints, mass, tof, weight, label)
+
+def TwGetMassCalibPy():
+    mode = np.zeros((1,), dtype=np.int32)
+    nbrParams = np.zeros((1,), dtype=np.int32)
+    nbrPoints = np.zeros((1,), dtype=np.int32)
+    rv = TwGetMassCalibEx(mode, nbrParams, None, nbrPoints, None, None, None, None)
+    if rv != TwValueAdjusted:
+        raise ValueError(rv)
+    p = np.zeros(nbrParams, dtype=np.float64)
+    m = np.ndarray((nbrPoints), dtype=np.float64)
+    t = np.ndarray((nbrPoints), dtype=np.float64)
+    w = np.ndarray((nbrPoints), dtype=np.float64)
+    l = ct.create_string_buffer(int(nbrPoints[0]*256))
+    rv = TwGetMassCalibEx(mode, nbrParams, p, nbrPoints, m, t, w, l)
+    if rv != TwSuccess:
+        raise ValueError(rv)
+    result = {}
+    result['parameters'] = list(p)
+    result['points'] = []
+    for i in range(nbrPoints[0]):
+        label = l[i*256:(i+1)*256].strip(b'\0').decode()
+        result['points'].append((m[i], t[i], w[i], label))
+    
+    return result
+            
 
 def TwGetSumSpectrumFromShMem(spectrum, normalize):
     libTofDaq._TwGetSumSpectrumFromShMem.argtypes = [_double_array, ct.c_byte]
@@ -356,7 +409,7 @@ def TwGetSpecXaxisFromShMem(specAxis, axisType, unitLabel):
     return libTofDaq._TwGetSpecXaxisFromShMem(specAxis, axisType, unitLabel)
 
 def TwGetStickSpectrumFromShMem(spectrum, masses, segmentIndex, segmentEndIndex, bufIndex):
-    if masses == None:
+    if masses is None:
         libTofDaq._TwGetStickSpectrumFromShMem.argtypes = [_float_array, ct.c_void_p, ct.c_int, ct.c_int, ct.c_int]
     else:
         libTofDaq._TwGetStickSpectrumFromShMem.argtypes = [_float_array, _float_array, ct.c_int, ct.c_int, ct.c_int]
@@ -388,9 +441,13 @@ def TwAddAttributeString(objName, attributeName, value):
     libTofDaq._TwAddAttributeString.argtypes = [ct.c_char_p, ct.c_char_p, ct.c_char_p]
     return libTofDaq._TwAddAttributeString(objName, attributeName, value)    
 
-def TwAddUserData(location, nbrElements, elementDescription, data):
-    libTofDaq._TwAddUserData.argtypes = [ct.c_char_p, ct.c_int, ct.c_char_p, _double_array]
-    return libTofDaq._TwAddUserData(location, nbrElements, elementDescription, data)
+def TwAddUserData(location, nbrElements, elementDescription, data, compressionLevel):
+    libTofDaq._TwAddUserData.argtypes = [ct.c_char_p, ct.c_int, ct.c_char_p, _double_array, ct.c_int]
+    return libTofDaq._TwAddUserData(location, nbrElements, elementDescription, data, compressionLevel)
+
+def TwAddUserDataMultiRow(location, nbrElements, nbrRows, elementDescription, data, compressionLevel):
+    libTofDaq._TwAddUserDataMultiRow.argtypes = [ct.c_char_p, ct.c_int, ct.c_int, ct.c_char_p, _double_array, ct.c_int]
+    return libTofDaq._TwAddUserDataMultiRow(location, nbrElements, nbrRows, elementDescription, data, compressionLevel)
 
 def TwRegisterUserDataBuf(location, nbrElements, elementDescription, compressionLevel):
     libTofDaq._TwRegisterUserDataBuf.argtypes = [ct.c_char_p, ct.c_int, ct.c_char_p, ct.c_int]
@@ -430,6 +487,28 @@ def TwRegisterUserDataWritePy(location, elementDescription, compressionLevel):
         location = location.encode()
     return TwRegisterUserDataWrite(location, len(elementDescription), descBuffer, compressionLevel)
 
+
+def TwRegisterUserDataNoStore(location, nbrElements, elementDescription):
+    libTofDaq._TwRegisterUserDataNoStore.argtypes = [ct.c_char_p, ct.c_int, ct.c_char_p]
+    return libTofDaq._TwRegisterUserDataNoStore(location, nbrElements, elementDescription)
+
+
+def TwRegisterUserDataNoStorePy(location, elementDescription):
+    if elementDescription != None:
+        descBuffer = ct.create_string_buffer(len(elementDescription)*256)
+        for index in range(len(elementDescription)):
+            if isinstance(elementDescription[index], str):
+                tempBuffer = ct.create_string_buffer(elementDescription[index].encode())
+            else:
+                tempBuffer = ct.create_string_buffer(elementDescription[index])
+            ct.memmove(ct.addressof(descBuffer)+index*256, ct.addressof(tempBuffer), 256) 
+    else:
+        descBuffer = None
+    if isinstance(location, str):
+        location = location.encode()
+    return TwRegisterUserDataNoStore(location, len(elementDescription), descBuffer)
+
+
 def TwUnregisterUserData(location):
     libTofDaq._TwUnregisterUserData.argtypes = [ct.c_char_p]
     return libTofDaq._TwUnregisterUserData(location)
@@ -445,12 +524,10 @@ def TwUpdateUserDataPy(location, data):
     if isinstance(location, str):
         location = location.encode()
     return TwUpdateUserData(location, len(data), dataBuffer)
-
     
 def TwReadRegUserData(location, nbrElements, data):
     libTofDaq._TwReadRegUserData.argtypes = [ct.c_char_p, ct.c_int, _double_array]
     return libTofDaq._TwReadRegUserData(location, nbrElements, data)
-
 
 def TwSetRegUserDataTarget(location, elementIndex, elementValue, blockTime):
     libTofDaq._TwSetRegUserDataTarget.argtypes = [ct.c_char_p, ct.c_int, ct.c_double, ct.c_int]
@@ -459,8 +536,57 @@ def TwSetRegUserDataTarget(location, elementIndex, elementValue, blockTime):
 def TwGetRegUserDataTargetRange(location, elementIndex, minValue, maxValue):
     libTofDaq._TwGetRegUserDataTargetRange.argtypes = [ct.c_char_p, ct.c_int, ndpointer(np.float64, shape=1), ndpointer(np.float64, shape=1)]
     return libTofDaq._TwGetRegUserDataTargetRange(location, elementIndex, minValue, maxValue)
+
+def TwQueryRegUserDataSize(location, nbrElements):
+    libTofDaq._TwQueryRegUserDataSize.argtypes = [ct.c_char_p, ndpointer(np.int32, shape=1)]
+    return libTofDaq._TwQueryRegUserDataSize(location, nbrElements)
+
+def TwGetRegUserDataDesc(location, nbrElements, desc):
+    libTofDaq._TwGetRegUserDataDesc.argtypes = [ct.c_char_p, ndpointer(np.int32, shape=1), ct.c_char_p]
+    return libTofDaq._TwGetRegUserDataDesc(location, nbrElements, desc)
+
+def TwGetRegUserDataDescPy(location):
+    desc = []
+    nbrElements = np.zeros((1,), dtype=np.int32)
+    rv = TwQueryRegUserDataSize(location, nbrElements)
+    if rv != TwSuccess:
+        return None
+    if nbrElements[0] == 0:
+        return desc
+    charBuf = ct.create_string_buffer(int(nbrElements[0]*256))
+    rv = TwGetRegUserDataDesc(location, nbrElements, charBuf)
+    if rv != TwSuccess:
+        return None
+    for i in range(nbrElements[0]):
+        desc.append(charBuf[i*256:(i+1)*256].strip(b'\0'))            
+    return desc
+
+def TwGetRegUserDataSources(arrayLength, location, nbrElements, dsType):
+    if location is None and nbrElements is None and dsType is None:
+        libTofDaq._TwGetRegUserDataSources.argtypes = [ndpointer(np.int32, shape=1), ct.c_void_p, ct.c_void_p, ct.c_void_p]
+    else:
+        libTofDaq._TwGetRegUserDataSources.argtypes = [ndpointer(np.int32), ct.c_char_p, ndpointer(np.int32, shape=1), ndpointer(np.int32)]
+    return libTofDaq._TwGetRegUserDataSources(arrayLength, location, nbrElements, dsType)
     
 
+def TwGetRegUserDataSourcesPy():
+    sources = []
+    nbrSrc = np.zeros((1,), dtype=np.int32)
+    rv = TwGetRegUserDataSources(nbrSrc, None, None, None)
+    if rv != TwValueAdjusted:
+        return None
+    if nbrSrc[0] == 0:
+        return sources
+    location = ct.create_string_buffer(int(nbrSrc[0]*256))
+    nbrElements = np.zeros((nbrSrc[0],), dtype=np.int32)
+    dsType = np.zeros((nbrSrc[0],), dtype=np.int32)
+    rv = TwGetRegUserDataSources(nbrSrc, location, nbrElements, dsType)
+    if rv != TwSuccess:
+        return None
+    for i in range(nbrSrc[0]):
+        dsLoc = location[i*256:(i+1)*256].strip(b'\0')
+        sources.append((dsLoc, int(nbrElements[i]), int(dsType[i])))
+    return sources
 # ------------------------ TPS REMOTE CONTROL FUNCTIONS ------------------------
 
 def TwTpsConnect():
@@ -526,9 +652,56 @@ def TwTpsLoadSetFile(setFile):
     libTofDaq._TwTpsLoadSetFile.argtypes = [ct.c_char_p]
     return libTofDaq._TwTpsLoadSetFile(setFile)
 
-def TwTpsSaveSetFile(setFile):
-    libTofDaq._TwTpsSaveSetFile.argtypes = [ct.c_char_p]
-    return libTofDaq._TwTpsSaveSetFile(setFile)
+def TwTpsLoadSetFile(setFile):
+    libTofDaq._TwTpsLoadSetFile.argtypes = [ct.c_char_p]
+    return libTofDaq._TwTpsLoadSetFile(setFile)
+
+def TwTpsSaveSetFile2(setFile, rcBlackList, blackListLength, rcWhiteList, whiteListLength):
+    libTofDaq._TwTpsSaveSetFile2.argtypes = [ct.c_char_p,
+                                             c_void_p if rcBlackList is None else ndpointer(np.int32, shape=blackListLength),
+                                             ct.c_int,
+                                             c_void_p if rcWhiteList is None else ndpointer(np.int32, shape=whiteListLength),
+                                             ct.c_int]
+    return libTofDaq._TwTpsSaveSetFile2(setFile, rcBlackList, blackListLength, rcWhiteList, whiteListLength)
+
+def TwTpsSaveSetFileRc(setFile):
+    libTofDaq._TwTpsSaveSetFileRc.argtypes = [ct.c_char_p]
+    return libTofDaq._TwTpsSaveSetFileRc(setFile)
+
+def TwTpsGetModuleLimits(moduleCode, minLimit, maxLimit):
+    libTofDaq._TwTpsGetModuleLimits.argtypes = [ct.c_int, ndpointer(np.float64, shape=1), ndpointer(np.float64, shape=1)]
+    return libTofDaq._TwTpsGetModuleLimits(moduleCode, minLimit, maxLimit)  
+
+def TwAutoSetupDaqDevice():
+    return libTofDaq._TwAutoSetupDaqDevice()
+
+def TwOnDemandMassCalibration(action):
+    libTofDaq._TwOnDemandMassCalibration.argtypes = [ct.c_int]
+    return libTofDaq._TwOnDemandMassCalibration(action)    
+
+if TOFDAQDLL_REV >= 19:
+    def TwKeepFileOpen(keepOpen):
+        libTofDaq._TwKeepFileOpen.argtypes = [ct.c_bool]
+        return libTofDaq._TwKeepFileOpen(keepOpen)
+    
+if TOFDAQDLL_REV >= 618:
+    def TwSaturationWarning():
+        libTofDaq._TwSaturationWarning.restype = ct.c_bool
+        return libTofDaq._TwSaturationWarning()
+
+if TOFDAQDLL_REV >= 950:
+    def TwTpsGetNmtState(moduleCode, nmtState):
+        libTofDaq._TwTpsGetNmtState.argtypes = [ct.c_int, ndpointer(np.int32, shape=1)]
+        return libTofDaq._TwTpsGetNmtState(moduleCode, nmtState)    
+        
+    def TwTpsSetNmtCmd(moduleCode, nmtCmd):
+        libTofDaq._TwTpsSetNmtCmd.argtypes = [ct.c_int, ct.c_int]
+        return libTofDaq._TwTpsSetNmtCmd(moduleCode, nmtCmd)
+
+if TOFDAQDLL_REV >= 1019:
+    def TwConfigureForSingleIonMeasurement(nbrBits, negativeSignal):
+        libTofDaq._TwConfigureForSingleIonMeasurement.argtypes = [ndpointer(np.int32, shape=1), ndpointer(np.int8, shape=1)]
+        return libTofDaq._TwConfigureForSingleIonMeasurement(nbrBits, negativeSignal)
 
 if TOFDAQDLL_REV >= 1083:
     def TwTpsGetModuleProperties(moduleCode, properties, label):
@@ -551,17 +724,11 @@ if TOFDAQDLL_REV >= 1120:
         libTofDaq._TwTpsSendPdo.argtypes = [ct.c_int, ct.c_int, ct.c_char_p]
         return libTofDaq._TwTpsSendPdo(cobId, len(data), data)
 
-
-if TOFDAQDLL_REV >= 1204:
-    def TwSendDioStartSignal():
-        return libTofDaq._TwSendDioStartSignal()
-
-    def TwWaitingForDioStartSignal():
-        libTofDaq._TwWaitingForDioStartSignal.restype = ct.c_bool
-        return libTofDaq._TwWaitingForDioStartSignal()
         
-def TwSetTimeout(timeout):
-    libTofDaq._TwSetTimeout.argtypes = [ct.c_int]
-    libTofDaq._TwSetTimeout(timeout)
     
+if TOFDAQDLL_REV >= 1343:
+    def TwGenerateSegmentProfilesFromEventData(nbrProfiles, startMass, endMass, bufIndex, data, startEndInSamples, tofSpec):
+        libTofDaq._TwGenerateSegmentProfilesFromEventData.argtypes = [ct.c_int, ndpointer(np.float64, shape=nbrProfiles), ndpointer(np.float64, shape=nbrProfiles), ct.c_int, ndpointer(np.float32), ct.c_bool, ct.c_void_p if tofSpec is None else ndpointer(np.float32)]
+        return libTofDaq._TwGenerateSegmentProfilesFromEventData(nbrProfiles, startMass, endMass, bufIndex, data, startEndInSamples, tofSpec)
 
+        

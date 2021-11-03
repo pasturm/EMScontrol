@@ -202,3 +202,79 @@ def TwIntegrateTofSpectra(tofSpecs, scaleFactor, mcMode, mcPar, peak, stickSpecs
     stickPtrPtr = (floatPtr * nbrSpec)(*[s.ctypes.data_as(floatPtr) for s in stickSpecs])    
     return integratetofspectra(tofPtrPtr, nbrSamples, nbrSpec, scaleFactor, mcMode, mcPar, nbrPeaks, peak, stickPtrPtr, algorithm, None)
 
+
+decomposemass = toollib.TwDecomposeMass if os.name=='posix' else toollib._TwDecomposeMass
+def TwDecomposeMass(targetMass, tolerance, nbrAtoms, atomMass, atomLabel, nbrFilters, elementIndex1, elementIndex2, filterMinVal, filterMaxVal, nbrCompomers):
+    if nbrFilters > 0:
+        decomposemass.argtypes = [ct.c_double, ct.c_double, ct.c_int, ndpointer(np.float64, shape=nbrAtoms), ct.c_char_p, ct.c_int, ndpointer(np.int32, shape=nbrFilters), ndpointer(np.int32, shape=nbrFilters), ndpointer(np.float64, shape=nbrFilters), ndpointer(np.float64, shape=nbrFilters), ndpointer(np.int32, shape=1)]
+    else:
+        decomposemass.argtypes = [ct.c_double, ct.c_double, ct.c_int, ndpointer(np.float64, shape=nbrAtoms), ct.c_char_p, ct.c_int, ct.c_void_p, ct.c_void_p, ct.c_void_p, ct.c_void_p, ndpointer(np.int32, shape=1)]
+    return decomposemass(targetMass, tolerance, nbrAtoms, atomMass, atomLabel, nbrFilters, elementIndex1, elementIndex2, filterMinVal, filterMaxVal, nbrCompomers)
+
+
+decomposemass2 = toollib.TwDecomposeMass2 if os.name=='posix' else toollib._TwDecomposeMass2
+def TwDecomposeMass2(targetMass, tolerance, nbrAtoms, atomMass, atomLabel, nbrFilters, elementIndex1, elementIndex2, filterMinVal, filterMaxVal, nbrCompomers, maxHits, maxSearch):
+    if nbrFilters > 0:
+        decomposemass2.argtypes = [ct.c_double, ct.c_double, ct.c_int, ndpointer(np.float64, shape=nbrAtoms), ct.c_char_p, ct.c_int, ndpointer(np.int32, shape=nbrFilters), ndpointer(np.int32, shape=nbrFilters), ndpointer(np.float64, shape=nbrFilters), ndpointer(np.float64, shape=nbrFilters), ndpointer(np.int32, shape=1), ct.c_int, ct.c_int]
+    else:
+        decomposemass2.argtypes = [ct.c_double, ct.c_double, ct.c_int, ndpointer(np.float64, shape=nbrAtoms), ct.c_char_p, ct.c_int, ct.c_void_p, ct.c_void_p, ct.c_void_p, ct.c_void_p, ndpointer(np.int32, shape=1), ct.c_int, ct.c_int]
+    return decomposemass2(targetMass, tolerance, nbrAtoms, atomMass, atomLabel, nbrFilters, elementIndex1, elementIndex2, filterMinVal, filterMaxVal, nbrCompomers, maxHits, maxSearch)
+
+
+getcomposition = toollib.TwGetComposition if os.name=='posix' else toollib._TwGetComposition
+getcomposition.argtypes = [ct.c_int, ct.c_char_p, ndpointer(np.int32, shape=1), ndpointer(np.float64, shape=1), ndpointer(np.float64, shape=1)]
+def TwGetComposition(index, sumFormula, sumFormulaLength, mass, massError):
+    return getcomposition(index, sumFormula, sumFormulaLength, mass, massError)
+
+
+def TwDecomposeMassPy(targetMass, tolerance, fragments, filters=None, maxHits=9999999, maxSearch=9999999):
+    """Finds sum formulae for a given molecular mass
+
+    Parameters:
+    targetMass (float): target mass for molecular formula search
+    tolerance (float): maximum allowed mass error for result formulae
+    fragments (list of tuples(float, bytes)): list of fragment masses and their string (bytes) representation
+    filters (list of tuples(int, int, float, float)): 2 types of filter supported: absolute number for a given element/isotope (set 2nd element index to -1) and ratios between two defined elements/isotopes
+    maxHits (int): abort when this many compomers have been found
+    maxSearch (int): abort after that many tested formulas
+
+    Returns:
+    list of tuples(bytes, float, float): sum formula, mass and mass error
+
+   """
+    fragMass, fragLabel = zip(*fragments)
+    atomLabel = b'\0'.join(fragLabel)
+    atomLabel += b'\0'
+    atomMass = np.array(fragMass, dtype=np.float64)
+    nbrCompomers = np.zeros((1,), dtype=np.int32)
+    if filters:
+        elIndex1, elIndex2, minVal, maxVal = zip(*filters)
+        elementIndex1 = np.array(elIndex1, dtype=np.int32)
+        elementIndex2 = np.array(elIndex2, dtype=np.int32)
+        filterMinVal = np.array(minVal, dtype=np.float64)
+        filterMaxVal = np.array(maxVal, dtype=np.float64)        
+        rv = TwDecomposeMass2(targetMass, tolerance, len(fragments), atomMass, atomLabel, len(filters), elementIndex1, elementIndex2, filterMinVal, filterMaxVal, nbrCompomers, maxHits, maxSearch)
+    else:
+        rv = TwDecomposeMass2(targetMass, tolerance, len(fragments), atomMass, atomLabel, 0, None, None, None, None, nbrCompomers, maxHits, maxSearch)
+    result = []
+    if (rv == TwSuccess or rv == TwAborted) and nbrCompomers[0] >= 0:
+        formulaBuffer = ct.create_string_buffer(1024)
+        formulaBufferLength = np.array([1024], dtype=np.int32)
+        mass = np.zeros((1,), dtype=np.float64)
+        massErr = np.zeros((1,), dtype=np.float64)
+        for c in range(nbrCompomers[0]):
+            TwGetComposition(c, formulaBuffer, formulaBufferLength, mass, massErr)
+            result.append((formulaBuffer.value, mass[0], massErr[0]))
+    return (result, rv == TwSuccess)
+
+
+masscalibrate = toollib.TwMassCalibrate if os.name=='posix' else toollib._TwMassCalibrate
+def TwMassCalibrate(mode, nbrPoints, mass, tof, weight, nbrParams, p):
+    masscalibrate.argtypes = [ct.c_int, ct.c_int, ndpointer(np.float64, shape=nbrPoints), ndpointer(np.float64, shape=nbrPoints), ndpointer(np.float64, shape=nbrPoints), ndpointer(np.int32, shape=1), ndpointer(np.float64), ct.c_void_p, ct.c_void_p]
+    return masscalibrate(mode, nbrPoints, mass, tof, weight, nbrParams, p, None, None)
+    
+    
+
+
+    
+
