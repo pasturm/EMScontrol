@@ -2,7 +2,7 @@
 
 """Basic EMS voltage control and energy scanning"""
 
-__version__ = '0.1.7'
+__version__ = '0.1.8'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021, TOFWERK'
 
@@ -263,13 +263,13 @@ def make_window():
         sg.Text('Step size (eV)', size=(15,1)), sg.Input(default_text='10', size=(6,1), key='-STEP_SIZE-')],
         [sg.Text('Time per step (s)', size=(15,1)), sg.Input(default_text='1', size=(6,1), key='-TIME_PER_STEP-')],
         [sg.Button('Start', key='-START-'), sg.Button('Cancel', key='-STOP-'),
-        sg.ProgressBar(max_value=100, orientation='h', size=(35, 10), key='-PROGRESS BAR-')]]
+        sg.ProgressBar(max_value=100, orientation='h', size=(20, 10), key='-PROGRESS_BAR-', expand_x=True)]]
         )]]
 
-    layout += [[sg.Multiline(size=(80,1), autoscroll=True, 
+    layout += [[sg.Multiline(size=(50,2), autoscroll=True, 
         reroute_stdout=True, echo_stdout_stderr=True, write_only=True, key='-LOG_OUTPUT-',
         right_click_menu=['', ['&Clear']], background_color=sg.DEFAULT_BACKGROUND_COLOR, 
-        text_color=sg.DEFAULT_TEXT_COLOR)]]
+        text_color=sg.DEFAULT_TEXT_COLOR, no_scrollbar=True, expand_x=True)]]
        
     return sg.Window('EMS scan | TOFWERK', layout, icon='tw.ico', resizable=True, finalize=True)
 
@@ -355,7 +355,7 @@ def main():
             sg.popup('EMS scan software', 'Version ' + __version__,
                 __copyright__, title = 'About', icon = 'tw.ico', image='tw.png')
         elif event == '-PROGRESS-':
-            window['-PROGRESS BAR-'].update_bar(values[event], 100)
+            window['-PROGRESS_BAR-'].update_bar(values[event], 100)
         elif event == 'TPS IP address':
             new_tps_ip=sg.popup_get_text('TPS IP address', default_text=tps_ip, size=(15,1), icon='tw.ico')
             if new_tps_ip!=None:
