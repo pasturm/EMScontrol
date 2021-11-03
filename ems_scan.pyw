@@ -2,7 +2,7 @@
 
 """Basic EMS voltage control and energy scanning"""
 
-__version__ = '0.1.6'
+__version__ = '0.1.7'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021, TOFWERK'
 
@@ -252,7 +252,7 @@ def make_window():
         sg.Input(visible=False, default_text='1', key='-HVSUPPLY-')]]
         )]]
 
-    layout += [[sg.Button('Send all', key='-SET_TPS-'), sg.Button('Read setpoints', key='-READ_FROM_TPS-'), 
+    layout += [[sg.Button('Send all', key='-SET_TPS-', bind_return_key=True), sg.Button('Read setpoints', key='-READ_FROM_TPS-'), 
         sg.Input(visible=False, enable_events=True, do_not_clear=False, key='-LOAD-'), sg.FilesBrowse('Open...', initial_folder='setpoints', target='-LOAD-'), 
         sg.Input(visible=False, enable_events=True, do_not_clear=False, key='-SAVE-'), sg.FileSaveAs('Save...', default_extension = 'tps', initial_folder='setpoints', target='-SAVE-'),
         sg.Button('Zero all', key='-ZERO_ALL-')]]
@@ -263,12 +263,13 @@ def make_window():
         sg.Text('Step size (eV)', size=(15,1)), sg.Input(default_text='10', size=(6,1), key='-STEP_SIZE-')],
         [sg.Text('Time per step (s)', size=(15,1)), sg.Input(default_text='1', size=(6,1), key='-TIME_PER_STEP-')],
         [sg.Button('Start', key='-START-'), sg.Button('Cancel', key='-STOP-'),
-        sg.ProgressBar(max_value=100, orientation='h', size=(41, 10), key='-PROGRESS BAR-')]]
+        sg.ProgressBar(max_value=100, orientation='h', size=(35, 10), key='-PROGRESS BAR-')]]
         )]]
 
-    layout += [sg.Text('Log')], [sg.Multiline(size=(80,10), autoscroll=True, 
+    layout += [[sg.Multiline(size=(80,1), autoscroll=True, 
         reroute_stdout=True, echo_stdout_stderr=True, write_only=True, key='-LOG_OUTPUT-',
-        right_click_menu=['', ['&Clear']])]
+        right_click_menu=['', ['&Clear']], background_color=sg.DEFAULT_BACKGROUND_COLOR, 
+        text_color=sg.DEFAULT_TEXT_COLOR)]]
        
     return sg.Window('EMS scan | TOFWERK', layout, icon='tw.ico', resizable=True, finalize=True)
 
@@ -318,7 +319,7 @@ def scanning_thread(window, values):
     time.sleep(1)
     TwLoadIniFile(''.encode())
     # TwTpsLoadSetFile('TwTpsTempSetFile'.encode())
-    log.info('Fertig.')
+    log.info('Energy scan completed.')
     [window[key].update(disabled=value) for key, value in {'-START-': False, '-STOP-': True}.items()]
 
 

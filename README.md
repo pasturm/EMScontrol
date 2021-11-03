@@ -9,13 +9,13 @@ Based on the TOFWERK TofDaq API and PySimpleGUI.
 
 ## How to run
 ```
-python ems_gui.py
+python ems_scan.pyw
 ```
 
 ## How to build a binary
 
 ```
-pyinstaller --onefile --windowed --clean --distpath './build'  ems_gui.spec
+pyinstaller --onefile --windowed --clean --distpath './build'  ems_scan.spec
 ```
 
 ## Documentation

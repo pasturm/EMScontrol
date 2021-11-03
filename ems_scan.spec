@@ -3,7 +3,7 @@
 block_cipher = None
 
 
-a = Analysis(['ems_gui.py'],
+a = Analysis(['ems_scan.pyw'],
              pathex=['C:\\Users\\pst\\tresorit\\Tofwerk\\Python\\EMS'],
              binaries=[('C:\\Users\\pst\\tresorit\\Tofwerk\\Python\\EMS\\TofDaqDll.dll', '.'),
              ('C:\\Users\\pst\\tresorit\\Tofwerk\\Python\\EMS\\TwToolDll.dll', '.')],
