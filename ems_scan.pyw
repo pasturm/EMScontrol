@@ -2,7 +2,7 @@
 
 """Basic EMS voltage control and energy scanning"""
 
-__version__ = '0.1.9'
+__version__ = '0.2.0'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021, TOFWERK'
 
@@ -22,7 +22,6 @@ from TwTool import *
 
 # Logger
 log = logging.getLogger(__name__)
-
 
 # TPS RC codes
 tps1rc = {
@@ -55,7 +54,6 @@ tps1rc = {
 'HVNEG': 604
 }
 
-
 # Windows element keys that are Voltages and can change background color
 V_INPUTS = {'-ORIFICE-':0, '-LENS1-':0, '-DEFL1U-':0, '-DEFL1D-':0, '-DEFL1L-':0, '-DEFL1R-':0, 
     '-INNER_CYL-':0, '-OUTER_CYL-':0, '-MATSUDA-':0, '-LENS2-':0, '-DEFL-':0, '-DEFLFL-':0, '-REF-':0,
@@ -70,10 +68,8 @@ SETPOINTS = {'-ESA_ENERGY-':0, '-TOF_ENERGY-':0, '-ION_ENERGY-':0, '-POLARITY-':
     '-TOFEXTR1-':0, '-RG-':0, '-RB-':0, '-TOFEXTR2-':0, '-TOFPULSE-':0, '-DRIFT-':0,
     '-PA-':0, '-MCP-':0, '-HVSUPPLY-':0, '-HVPOS-':0, '-HVNEG-':0, '-IONEX-':0}
 
-
 # exit event to abort energy scanning
 exit_event = threading.Event()
-
 
 def calculate_EA_voltages(ea_energy, r0 = 0.100, d = 0.0125, polarity = 1):
     """
@@ -94,7 +90,6 @@ def calculate_EA_voltages(ea_energy, r0 = 0.100, d = 0.0125, polarity = 1):
     V1 = polarity*ea_energy*2*math.log(r2/r1)*(math.log(r1)-math.log(r0))/(math.log(r2)-math.log(r1))  # inner cylinder voltage, V
     V2 = polarity*ea_energy*2*math.log(r2/r1) + V1  # outer cylinder voltage, V
     return V1, V2
-
 
 def set_voltages_ea(values, ion_energy):
     """
@@ -143,14 +138,12 @@ def set_voltages_ea(values, ion_energy):
     if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['TOFEXTR1']}: {TwTranslateReturnValue(rv).decode()}.")
     rv = TwTpsSetTargetValue(tps1rc['RG'], V_rg)
     if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['RG']}: {TwTranslateReturnValue(rv).decode()}.")
-
     # Show actual TPS voltages as debug message: Orifice|Extractor|Lens1|Inner|Outer|Matsuda|Reference|Lens2|TOFreference|TOFExtr1|RG
     # log.debug(f"{values['-ORIFICE-']}|{V_extractor}|{V_extractor + float(values['-LENS1-'])}"
     #     f"|{V_extractor + V1 + float(values['-INNER_CYL-']):.1f}|{V_extractor + V2 + float(values['-OUTER_CYL-']):.1f}"
     #     f"|{V_extractor + float(values['-MATSUDA-']):.1f}"
     #     f"|{V_tofreference + V_reference}|{V_tofreference + V_reference + float(values['-LENS2-'])}"
     #     f"|{V_tofreference}|{V_tofextractor1}|{V_rg}")
-
 
 def set_voltages_tof(values):
     """
@@ -175,13 +168,11 @@ def set_voltages_tof(values):
     rv = TwTpsSetTargetValue(tps1rc['HVNEG'], float(values['-HVNEG-']))
     if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['HVNEG']}: {TwTranslateReturnValue(rv).decode()}.")
 
-
 def load_setpoints(set_file):
     """Load setpoints from file"""
     with open(set_file, 'r') as f:
         setpoints = jsonload(f)
     return setpoints
-
 
 def save_setpoints(set_file, setpoints, values):
     """Save setpoints to file"""
@@ -189,7 +180,6 @@ def save_setpoints(set_file, setpoints, values):
         setpoints[key] = values[key]
     with open(set_file, 'w') as f:
         jsondump(setpoints, f)
-
 
 def read_setpoints_from_tps():
     """Read current setpoints from TPS"""
@@ -200,12 +190,10 @@ def read_setpoints_from_tps():
         tps2setpoint[key] = value[0]
     return tps2setpoint
 
-
 def zero_all():
     """Zero all voltages"""
     for key in tps1rc:
         rv = TwTpsSetTargetValue(tps1rc[key], 0)
-
 
 def make_window():
     """Make GUI window"""
@@ -275,7 +263,6 @@ def make_window():
 
     return sg.Window('EMS scan | TOFWERK', layout, icon='tw.ico', resizable=True, finalize=True)
 
-
 def scanning_thread(window, values):
     """Energy scanning"""
     progress = 0
@@ -323,7 +310,6 @@ def scanning_thread(window, values):
     # TwTpsLoadSetFile('TwTpsTempSetFile'.encode())
     log.info('Energy scan completed.')
     [window[key].update(disabled=value) for key, value in {'-START-': False, '-STOP-': True}.items()]
-
 
 def main():
     window = make_window()
