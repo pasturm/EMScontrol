@@ -2,7 +2,7 @@
 
 """Basic EMS voltage control and energy scanning"""
 
-__version__ = '0.1.8'
+__version__ = '0.1.9'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021, TOFWERK'
 
@@ -37,10 +37,10 @@ tps1rc = {
 'INNER_CYL': 2501,
 'OUTER_CYL': 2502,
 'MATSUDA': 2503,
-'DEFL2U': 2504,
-'DEFL2D': 2505,
-'DEFL2L': 2506,
-'DEFL2R': 2507,
+'DEFL1U': 2504,
+'DEFL1D': 2505,
+'DEFL1L': 2506,
+'DEFL1R': 2507,
 'TOFREF': 202,
 'TOFEXTR1': 201,
 'TOFEXTR2': 200,
@@ -57,18 +57,18 @@ tps1rc = {
 
 
 # Windows element keys that are Voltages and can change background color
-V_INPUTS = {'-ORIFICE-':0, '-LENS1-':0, '-DEFL2U-':0, '-DEFL2D-':0, '-DEFL2L-':0, '-DEFL2R-':0, 
+V_INPUTS = {'-ORIFICE-':0, '-LENS1-':0, '-DEFL1U-':0, '-DEFL1D-':0, '-DEFL1L-':0, '-DEFL1R-':0, 
     '-INNER_CYL-':0, '-OUTER_CYL-':0, '-MATSUDA-':0, '-LENS2-':0, '-DEFL-':0, '-DEFLFL-':0, '-REF-':0,
     '-TOFEXTR1-':0, '-RG-':0, '-RB-':0, '-TOFEXTR2-':0, '-TOFPULSE-':0, '-DRIFT-':0,
-    '-PA-':0, '-MCP-':0}
+    '-PA-':0, '-MCP-':0, '-IONEX-':0}
 
 # Window element keys that will be saved to a file
 SETPOINTS = {'-ESA_ENERGY-':0, '-TOF_ENERGY-':0, '-ION_ENERGY-':0, '-POLARITY-':0, 
-    '-ORIFICE-':0, '-LENS1-':0, '-DEFL2U-':0, '-DEFL2D-':0, '-DEFL2L-':0, '-DEFL2R-':0, 
+    '-ORIFICE-':0, '-LENS1-':0, '-DEFL1U-':0, '-DEFL1D-':0, '-DEFL1L-':0, '-DEFL1R-':0, 
     '-INNER_CYL-':0, '-OUTER_CYL-':0, '-MATSUDA-':0, '-LENS2-':0, '-DEFL-':0, '-DEFLFL-':0, '-REF-':0,
     '-START_ENERGY-':0, '-END_ENERGY-':0, '-STEP_SIZE-':0,'-TIME_PER_STEP-':0,
     '-TOFEXTR1-':0, '-RG-':0, '-RB-':0, '-TOFEXTR2-':0, '-TOFPULSE-':0, '-DRIFT-':0,
-    '-PA-':0, '-MCP-':0, '-HVSUPPLY-':0, '-HVPOS-':0, '-HVNEG-':0}
+    '-PA-':0, '-MCP-':0, '-HVSUPPLY-':0, '-HVPOS-':0, '-HVNEG-':0, '-IONEX-':0}
 
 
 # exit event to abort energy scanning
@@ -105,24 +105,24 @@ def set_voltages_ea(values, ion_energy):
     V_extractor = ion_energy - float(values['-ESA_ENERGY-'])
     V_reference = float(values['-REF-'])
     V_tofreference = ion_energy - float(values['-TOF_ENERGY-'])  # from LV channel -> with sign
-    V_tofextractor1 = ion_energy - float(values['-TOF_ENERGY-']) + float(values['-TOFEXTR1-'])  # from LV channel -> with sign, relative to TOF reference
+    V_tofextractor1 = V_tofreference + float(values['-TOFEXTR1-'])  # from LV channel -> with sign, relative to TOF reference
     rg_correction = 0.25  # ion energy correction of RG in V/eV
-    V_rg = float(values['-RG-']) + ion_energy*rg_correction  # -RG- is set value at 0 eV ion energy
+    V_rg = float(values['-RG-']) + V_tofreference*rg_correction  # -RG- is set value if TOFREF = 0 V (ion energy - tof energy = 0 eV)
 
     rv = TwTpsSetTargetValue(tps1rc['ORIFICE'], float(values['-ORIFICE-']))
     if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['ORIFICE']}: {TwTranslateReturnValue(rv).decode()}.")
-    rv = TwTpsSetTargetValue(tps1rc['IONEX'], V_extractor)
+    rv = TwTpsSetTargetValue(tps1rc['IONEX'], V_extractor + float(values['-IONEX-']))
     if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['IONEX']}: {TwTranslateReturnValue(rv).decode()}.")
     rv = TwTpsSetTargetValue(tps1rc['L1'], V_extractor + float(values['-LENS1-']))
     if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['L1']}: {TwTranslateReturnValue(rv).decode()}.")
-    rv = TwTpsSetTargetValue(tps1rc['DEFL2U'], V_extractor + float(values['-DEFL2U-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFL2U']}: {TwTranslateReturnValue(rv).decode()}.")
-    rv = TwTpsSetTargetValue(tps1rc['DEFL2D'], V_extractor + float(values['-DEFL2D-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFL2D']}: {TwTranslateReturnValue(rv).decode()}.")
-    rv = TwTpsSetTargetValue(tps1rc['DEFL2R'], V_extractor + float(values['-DEFL2R-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFL2R']}: {TwTranslateReturnValue(rv).decode()}.")
-    rv = TwTpsSetTargetValue(tps1rc['DEFL2L'], V_extractor + float(values['-DEFL2L-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFL2L']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['DEFL1U'], V_extractor + float(values['-DEFL1U-']))
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFL1U']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['DEFL1D'], V_extractor + float(values['-DEFL1D-']))
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFL1D']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['DEFL1R'], V_extractor + float(values['-DEFL1R-']))
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFL1R']}: {TwTranslateReturnValue(rv).decode()}.")
+    rv = TwTpsSetTargetValue(tps1rc['DEFL1L'], V_extractor + float(values['-DEFL1L-']))
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFL1L']}: {TwTranslateReturnValue(rv).decode()}.")
     rv = TwTpsSetTargetValue(tps1rc['INNER_CYL'], V_extractor + V1 + float(values['-INNER_CYL-']))
     if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['INNER_CYL']}: {TwTranslateReturnValue(rv).decode()}.")
     rv = TwTpsSetTargetValue(tps1rc['OUTER_CYL'], V_extractor + V2 + float(values['-OUTER_CYL-']))
@@ -210,8 +210,10 @@ def zero_all():
 def make_window():
     """Make GUI window"""
     sg.SetOptions(text_justification='right')
+    # sg.theme('SystemDefaultForReal')
 
-    menu_def = [['&Settings', ['&TPS IP address']], ['&Help', ['&About']]]
+    # menu_def = [['&Settings', ['&TPS IP address']], ['&Help', ['&About']]]
+    menu_def = [['&Help', ['&About']]]
     layout = [[sg.Menu(menu_def, key='-MENU-')]]
 
     layout += [[sg.Frame('Energies (eV)', 
@@ -224,25 +226,25 @@ def make_window():
 
     layout += [[sg.Frame('Voltages (V)',
         [[sg.Text('Orifice', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-ORIFICE-'),
-        sg.Text('Matsuda', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-MATSUDA-'),
-        sg.Text('TOF Extractor 1', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-TOFEXTR1-')],
-        [sg.Text('Lens 1', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-LENS1-'),
-        sg.Text('Inner Cylinder', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-INNER_CYL-'),
+        sg.Text('Matsuda', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-MATSUDA-'),
+        sg.Text('TOF Extractor 1', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-TOFEXTR1-')],
+        [sg.Text('Lens 1', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-LENS1-'),
+        sg.Text('Inner Cylinder', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-INNER_CYL-'),
         sg.Text('TOF Extractor 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-TOFEXTR2-')],
-        [sg.Text('Defl 2 up', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL2U-'),
-        sg.Text('Outer Cylinder', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-OUTER_CYL-'),
+        [sg.Text('Deflector 1 up', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-DEFL1U-'),
+        sg.Text('Outer Cylinder', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-OUTER_CYL-'),
         sg.Text('TOF Pulse', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-TOFPULSE-')],
-        [sg.Text('Defl 2 down', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL2D-'),
-        sg.Text('Lens 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-LENS2-'),
-        sg.Text('RG', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-RG-')],
-        [sg.Text('Defl 2 left', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL2L-'),
-        sg.Text('Defl 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL-'),
+        [sg.Text('Deflector 1 down', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-DEFL1D-'),
+        sg.Text('Lens 2', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-LENS2-'),
+        sg.Text('RG', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-RG-')],
+        [sg.Text('Deflector 1 left', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-DEFL1L-'),
+        sg.Text('Deflector 2', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-DEFL-'),
         sg.Text('RB', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-RB-')],
-        [sg.Text('Defl 2 right', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL2R-'),
-        sg.Text('Defl Fl 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFLFL-'),
+        [sg.Text('Deflector 1 right', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-DEFL1R-'),
+        sg.Text('Deflector Flange 2', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-DEFLFL-'),
         sg.Text('Drift', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DRIFT-')],
-        [sg.Text('', size=(1,1)), 
-        sg.Text('Reference', size=(36,1)), sg.Input(default_text='0', size=(6,1), key='-REF-'), 
+        [sg.Text('Ion Extractor', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-IONEX-'), 
+        sg.Text('Reference', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-REF-'), 
         sg.Text('PA', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-PA-')],
         [sg.Text('', size=(1,1)), 
         sg.Text('', size=(1,1)), 
@@ -268,9 +270,9 @@ def make_window():
 
     layout += [[sg.Multiline(size=(50,2), autoscroll=True, 
         reroute_stdout=True, echo_stdout_stderr=True, write_only=True, key='-LOG_OUTPUT-',
-        right_click_menu=['', ['&Clear']], background_color=sg.DEFAULT_BACKGROUND_COLOR, 
-        text_color=sg.DEFAULT_TEXT_COLOR, no_scrollbar=True, expand_x=True)]]
-       
+        right_click_menu=['', ['&Clear']], background_color=sg.theme_background_color(), 
+        text_color=sg.theme_element_text_color(), no_scrollbar=True, expand_x=True)]]
+
     return sg.Window('EMS scan | TOFWERK', layout, icon='tw.ico', resizable=True, finalize=True)
 
 
@@ -356,16 +358,16 @@ def main():
                 __copyright__, title = 'About', icon = 'tw.ico', image='tw.png')
         elif event == '-PROGRESS-':
             window['-PROGRESS_BAR-'].update_bar(values[event], 100)
-        elif event == 'TPS IP address':
-            new_tps_ip=sg.popup_get_text('TPS IP address', default_text=tps_ip, size=(15,1), icon='tw.ico')
-            if new_tps_ip!=None:
-                tps_ip = new_tps_ip
-                rv = TwTpsConnect2(new_tps_ip.encode(), 1)
-                if rv != TwSuccess:
-                    log.error('Failed to connect to TPS2.')
-                else:
-                    log.info(f'TPS2 connected via {tps_ip}.')
-                    # TwTpsSaveSetFile('TwTpsTempSetFile'.encode())
+        # elif event == 'TPS IP address':
+        #     new_tps_ip=sg.popup_get_text('TPS IP address', default_text=tps_ip, size=(15,1), icon='tw.ico')
+        #     if new_tps_ip!=None:
+        #         tps_ip = new_tps_ip
+        #         rv = TwTpsConnect2(new_tps_ip.encode(), 1)
+        #         if rv != TwSuccess:
+        #             log.error('Failed to connect to TPS2.')
+        #         else:
+        #             log.info(f'TPS2 connected via {tps_ip}.')
+        #             # TwTpsSaveSetFile('TwTpsTempSetFile'.encode())
         elif event == '-START-':
             for key, state in {'-START-': True, '-STOP-': False}.items():
                 window[key].update(disabled=state)
@@ -407,13 +409,13 @@ def main():
             window['-TOFEXTR2-'].update(value=tps2setpoint['TOFEXTR2'])
             window['-TOFPULSE-'].update(value=tps2setpoint['TOFPULSE'])
             window['-RB-'].update(value=tps2setpoint['RB'])
-            window['-RG-'].update(value=tps2setpoint['RG'] - float(values['-ION_ENERGY-'])*rg_correction)
+            window['-RG-'].update(value=tps2setpoint['RG'] - tps2setpoint['TOFREF']*rg_correction)
             window['-ORIFICE-'].update(value=tps2setpoint['ORIFICE'])
             window['-LENS1-'].update(value=tps2setpoint['L1'] - V_extractor)
-            window['-DEFL2U-'].update(value=tps2setpoint['DEFL2U'] - V_extractor)
-            window['-DEFL2D-'].update(value=tps2setpoint['DEFL2D'] - V_extractor)
-            window['-DEFL2R-'].update(value=tps2setpoint['DEFL2R'] - V_extractor)
-            window['-DEFL2L-'].update(value=tps2setpoint['DEFL2L'] - V_extractor)
+            window['-DEFL1U-'].update(value=tps2setpoint['DEFL1U'] - V_extractor)
+            window['-DEFL1D-'].update(value=tps2setpoint['DEFL1D'] - V_extractor)
+            window['-DEFL1R-'].update(value=tps2setpoint['DEFL1R'] - V_extractor)
+            window['-DEFL1L-'].update(value=tps2setpoint['DEFL1L'] - V_extractor)
             window['-MATSUDA-'].update(value=round(tps2setpoint['MATSUDA'] - V_extractor, 2))
             window['-LENS2-'].update(value=tps2setpoint['L2'] - tps2setpoint['REFERENCE'])
             window['-DEFL-'].update(value=tps2setpoint['DEFL'] - tps2setpoint['REFERENCE'])
@@ -423,6 +425,7 @@ def main():
             window['-OUTER_CYL-'].update(value=round(tps2setpoint['OUTER_CYL'] - V2 - V_extractor, 2))
             window['-TOF_ENERGY-'].update(value=tof_energy)
             window['-TOFEXTR1-'].update(value=tps2setpoint['TOFEXTR1'] + tof_energy - float(values['-ION_ENERGY-']))
+            window['-IONEX-'].update(value=tps2setpoint['IONEX'] - V_extractor)
             log.info('Updated set values from current TPS setpoints.')
         elif event == '-ZERO_ALL-':
             zero_all()
