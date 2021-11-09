@@ -246,7 +246,7 @@ def make_window():
         sg.Input(visible=False, default_text='1', key='-HVSUPPLY-')]]
         )]]
 
-    layout += [[sg.Button('Send all', key='-SET_TPS-', bind_return_key=True), sg.Button('Read setpoints', key='-READ_FROM_TPS-'), 
+    layout += [[sg.Button('Send all', key='-SET_TPS-', bind_return_key=True), sg.Button('Read setpoints', key='-READ_FROM_TPS-'),  
         sg.Input(visible=False, enable_events=True, do_not_clear=False, key='-LOAD-'), sg.FilesBrowse('Open...', initial_folder='setpoints', target='-LOAD-'), 
         sg.Input(visible=False, enable_events=True, do_not_clear=False, key='-SAVE-'), sg.FileSaveAs('Save...', default_extension = 'tps', initial_folder='setpoints', target='-SAVE-'),
         sg.Button('Zero all', key='-ZERO_ALL-')]]
@@ -265,7 +265,7 @@ def make_window():
         right_click_menu=['', ['&Clear']], background_color=sg.theme_background_color(), 
         text_color=sg.theme_element_text_color(), no_scrollbar=True, expand_x=True)]]
 
-    return sg.Window('EMS scan | TOFWERK', layout, icon='tw.ico', resizable=True, finalize=True)
+    return sg.Window('EMS scan | TOFWERK', layout, icon='tw.ico', resizable=True, finalize=True, return_keyboard_events=True)
 
 def scanning_thread(window, values):
     """Energy scanning"""
@@ -387,37 +387,37 @@ def main():
             for key in V_INPUTS:
                 window[key].update(background_color='#99C794')
             log.info('TPS voltages set.')
-        elif event == '-READ_FROM_TPS-':
+        elif event == '-READ_FROM_TPS-' or event == 'r:82':
             tps2setpoint = read_setpoints_from_tps()
             rg_correction = 0.25  # ion energy correction of RG in V/eV
             tof_energy = float(values['-ION_ENERGY-']) - tps2setpoint['TOFREF']
             V_extractor = float(values['-ION_ENERGY-'])-float(values['-ESA_ENERGY-'])
             V1, V2 = calculate_EA_voltages(float(values['-ESA_ENERGY-']), polarity=1)
-            window['-MCP-'].update(value=tps2setpoint['MCP'])
-            window['-PA-'].update(value=tps2setpoint['PA'])
-            window['-DRIFT-'].update(value=tps2setpoint['DRIFT'])
-            window['-TOFEXTR2-'].update(value=tps2setpoint['TOFEXTR2'])
-            window['-TOFPULSE-'].update(value=tps2setpoint['TOFPULSE'])
-            window['-RB-'].update(value=tps2setpoint['RB'])
-            window['-RG-'].update(value=tps2setpoint['RG'] - tps2setpoint['TOFREF']*rg_correction)
-            window['-ORIFICE-'].update(value=tps2setpoint['ORIFICE'])
-            window['-LENS1-'].update(value=tps2setpoint['L1'] - V_extractor)
-            window['-DEFL1U-'].update(value=tps2setpoint['DEFL1U'] - V_extractor)
-            window['-DEFL1D-'].update(value=tps2setpoint['DEFL1D'] - V_extractor)
-            window['-DEFL1R-'].update(value=tps2setpoint['DEFL1R'] - V_extractor)
-            window['-DEFL1L-'].update(value=tps2setpoint['DEFL1L'] - V_extractor)
+            window['-MCP-'].update(value=round(tps2setpoint['MCP'], 2))
+            window['-PA-'].update(value=round(tps2setpoint['PA'], 2))
+            window['-DRIFT-'].update(value=round(tps2setpoint['DRIFT'], 2))
+            window['-TOFEXTR2-'].update(value=round(tps2setpoint['TOFEXTR2'], 2))
+            window['-TOFPULSE-'].update(value=round(tps2setpoint['TOFPULSE'], 2))
+            window['-RB-'].update(value=round(tps2setpoint['RB'], 2))
+            window['-RG-'].update(value=round(tps2setpoint['RG'] - tps2setpoint['TOFREF']*rg_correction, 2))
+            window['-ORIFICE-'].update(value=round(tps2setpoint['ORIFICE'], 2))
+            window['-LENS1-'].update(value=round(tps2setpoint['L1'] - V_extractor, 2))
+            window['-DEFL1U-'].update(value=round(tps2setpoint['DEFL1U'] - V_extractor, 2))
+            window['-DEFL1D-'].update(value=round(tps2setpoint['DEFL1D'] - V_extractor, 2))
+            window['-DEFL1R-'].update(value=round(tps2setpoint['DEFL1R'] - V_extractor, 2))
+            window['-DEFL1L-'].update(value=round(tps2setpoint['DEFL1L'] - V_extractor, 2))
             window['-MATSUDA-'].update(value=round(tps2setpoint['MATSUDA'] - V_extractor, 2))
-            window['-LENS2-'].update(value=tps2setpoint['L2'] - tps2setpoint['REFERENCE'])
-            window['-DEFL-'].update(value=tps2setpoint['DEFL'] - tps2setpoint['REFERENCE'])
-            window['-DEFLFL-'].update(value=tps2setpoint['DEFLFL'] - tps2setpoint['REFERENCE'])
-            window['-REF-'].update(value=tps2setpoint['REFERENCE'] + tof_energy - float(values['-ION_ENERGY-']))
+            window['-LENS2-'].update(value=round(tps2setpoint['L2'] - tps2setpoint['REFERENCE'], 2))
+            window['-DEFL-'].update(value=round(tps2setpoint['DEFL'] - tps2setpoint['REFERENCE'], 2))
+            window['-DEFLFL-'].update(value=round(tps2setpoint['DEFLFL'] - tps2setpoint['REFERENCE'], 2))
+            window['-REF-'].update(value=round(tps2setpoint['REFERENCE'] + tof_energy - float(values['-ION_ENERGY-']), 2))
             window['-INNER_CYL-'].update(value=round(tps2setpoint['INNER_CYL'] - V1 - V_extractor, 2))
             window['-OUTER_CYL-'].update(value=round(tps2setpoint['OUTER_CYL'] - V2 - V_extractor, 2))
-            window['-TOF_ENERGY-'].update(value=tof_energy)
-            window['-TOFEXTR1-'].update(value=tps2setpoint['TOFEXTR1'] + tof_energy - float(values['-ION_ENERGY-']))
-            window['-IONEX-'].update(value=tps2setpoint['IONEX'] - V_extractor)
+            window['-TOF_ENERGY-'].update(value=round(tof_energy, 2))
+            window['-TOFEXTR1-'].update(value=round(tps2setpoint['TOFEXTR1'] + tof_energy - float(values['-ION_ENERGY-']), 2))
+            window['-IONEX-'].update(value=round(tps2setpoint['IONEX'] - V_extractor, 2))
             log.info('Updated set values from current TPS setpoints.')
-        elif event == '-ZERO_ALL-':
+        elif event == '-ZERO_ALL-' or event == 'z:90':
             zero_all()
             for key in V_INPUTS:
                 window[key].update(background_color='#6699CC')
