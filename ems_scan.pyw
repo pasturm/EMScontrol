@@ -2,7 +2,7 @@
 
 """Basic EMS voltage control and energy scanning"""
 
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021, TOFWERK'
 
@@ -91,6 +91,9 @@ def calculate_EA_voltages(ea_energy, r0 = 0.100, d = 0.0125, polarity = 1):
     V2 = polarity*ea_energy*2*math.log(r2/r1) + V1  # outer cylinder voltage, V
     return V1, V2
 
+def tps_error_log(rv, key):
+    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc[key]}: {TwTranslateReturnValue(rv).decode()}.")
+
 def set_voltages_ea(values, ion_energy):
     """
     Set all ion_energy-dependent voltages.
@@ -105,39 +108,39 @@ def set_voltages_ea(values, ion_energy):
     V_rg = float(values['-RG-']) + V_tofreference*rg_correction  # -RG- is set value if TOFREF = 0 V (ion energy - tof energy = 0 eV)
 
     rv = TwTpsSetTargetValue(tps1rc['ORIFICE'], float(values['-ORIFICE-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['ORIFICE']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'ORIFICE')
     rv = TwTpsSetTargetValue(tps1rc['IONEX'], V_extractor + float(values['-IONEX-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['IONEX']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'IONEX')
     rv = TwTpsSetTargetValue(tps1rc['L1'], V_extractor + float(values['-LENS1-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['L1']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'L1')
     rv = TwTpsSetTargetValue(tps1rc['DEFL1U'], V_extractor + float(values['-DEFL1U-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFL1U']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'DEFL1U')
     rv = TwTpsSetTargetValue(tps1rc['DEFL1D'], V_extractor + float(values['-DEFL1D-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFL1D']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'DEFL1D')
     rv = TwTpsSetTargetValue(tps1rc['DEFL1R'], V_extractor + float(values['-DEFL1R-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFL1R']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'DEFL1R')
     rv = TwTpsSetTargetValue(tps1rc['DEFL1L'], V_extractor + float(values['-DEFL1L-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFL1L']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'DEFL1L')
     rv = TwTpsSetTargetValue(tps1rc['INNER_CYL'], V_extractor + V1 + float(values['-INNER_CYL-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['INNER_CYL']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'INNER_CYL')
     rv = TwTpsSetTargetValue(tps1rc['OUTER_CYL'], V_extractor + V2 + float(values['-OUTER_CYL-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['OUTER_CYL']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'OUTER_CYL')
     rv = TwTpsSetTargetValue(tps1rc['MATSUDA'], V_extractor + float(values['-MATSUDA-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['MATSUDA']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'MATSUDA')
     rv = TwTpsSetTargetValue(tps1rc['REFERENCE'], V_tofreference + V_reference)
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['REFERENCE']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'REFERENCE')
     rv = TwTpsSetTargetValue(tps1rc['L2'], V_tofreference + V_reference + float(values['-LENS2-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['L2']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'L2')
     rv = TwTpsSetTargetValue(tps1rc['DEFL'], V_tofreference + V_reference + float(values['-DEFL-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFL']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'DEFL')
     rv = TwTpsSetTargetValue(tps1rc['DEFLFL'], V_tofreference + V_reference + float(values['-DEFLFL-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DEFLFL']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'DEFLFL')
     rv = TwTpsSetTargetValue(tps1rc['TOFREF'], V_tofreference)
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['TOFREF']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'TOFREF')
     rv = TwTpsSetTargetValue(tps1rc['TOFEXTR1'], V_tofextractor1)
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['TOFEXTR1']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'TOFEXTR1')
     rv = TwTpsSetTargetValue(tps1rc['RG'], V_rg)
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['RG']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'RG')
     # Show actual TPS voltages as debug message: Orifice|Extractor|Lens1|Inner|Outer|Matsuda|Reference|Lens2|TOFreference|TOFExtr1|RG
     # log.debug(f"{values['-ORIFICE-']}|{V_extractor}|{V_extractor + float(values['-LENS1-'])}"
     #     f"|{V_extractor + V1 + float(values['-INNER_CYL-']):.1f}|{V_extractor + V2 + float(values['-OUTER_CYL-']):.1f}"
@@ -150,23 +153,23 @@ def set_voltages_tof(values):
     Set all ion_energy-independent (tof) voltages.
     """
     rv = TwTpsSetTargetValue(tps1rc['RB'], float(values['-RB-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['RB']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'RB')
     rv = TwTpsSetTargetValue(tps1rc['TOFPULSE'], float(values['-TOFPULSE-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['TOFPULSE']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'TOFPULSE')
     rv = TwTpsSetTargetValue(tps1rc['TOFEXTR2'], float(values['-TOFEXTR2-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['TOFEXTR2']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'TOFEXTR2')
     rv = TwTpsSetTargetValue(tps1rc['DRIFT'], float(values['-DRIFT-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['DRIFT']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'DRIFT')
     rv = TwTpsSetTargetValue(tps1rc['PA'], float(values['-PA-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['PA']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'PA')
     rv = TwTpsSetTargetValue(tps1rc['MCP'], float(values['-MCP-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['MCP']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'MCP')
     rv = TwTpsSetTargetValue(tps1rc['HVSUPPLY'], float(values['-HVSUPPLY-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['HVSUPPLY']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'HVSUPPLY')
     rv = TwTpsSetTargetValue(tps1rc['HVPOS'], float(values['-HVPOS-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['HVPOS']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'HVPOS')
     rv = TwTpsSetTargetValue(tps1rc['HVNEG'], float(values['-HVNEG-']))
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc['HVNEG']}: {TwTranslateReturnValue(rv).decode()}.")
+    tps_error_log(rv, 'HVNEG')
 
 def load_setpoints(set_file):
     """Load setpoints from file"""
@@ -194,6 +197,7 @@ def zero_all():
     """Zero all voltages"""
     for key in tps1rc:
         rv = TwTpsSetTargetValue(tps1rc[key], 0)
+        tps_error_log(rv, key)
 
 def make_window():
     """Make GUI window"""
@@ -256,7 +260,7 @@ def make_window():
         sg.ProgressBar(max_value=100, orientation='h', size=(20, 10), key='-PROGRESS_BAR-', expand_x=True)]]
         )]]
 
-    layout += [[sg.Multiline(size=(50,2), autoscroll=True, 
+    layout += [[sg.Multiline(size=(50,5), autoscroll=True, 
         reroute_stdout=True, echo_stdout_stderr=True, write_only=True, key='-LOG_OUTPUT-',
         right_click_menu=['', ['&Clear']], background_color=sg.theme_background_color(), 
         text_color=sg.theme_element_text_color(), no_scrollbar=True, expand_x=True)]]
