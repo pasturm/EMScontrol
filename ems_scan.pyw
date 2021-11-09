@@ -2,7 +2,7 @@
 
 """Basic EMS voltage control and energy scanning"""
 
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021, TOFWERK'
 
@@ -30,7 +30,6 @@ tps1rc = {
 'DEFLFL': 16,
 'IONEX': 17,
 'L1': 18,
-'EP': 19,
 'REFERENCE': 117,
 'ORIFICE': 2500,
 'INNER_CYL': 2501,
@@ -387,7 +386,7 @@ def main():
             for key in V_INPUTS:
                 window[key].update(background_color='#99C794')
             log.info('TPS voltages set.')
-        elif event == '-READ_FROM_TPS-' or event == 'r:82':
+        elif event == '-READ_FROM_TPS-' or event == 'r:82':  # Ctrl-r
             tps2setpoint = read_setpoints_from_tps()
             rg_correction = 0.25  # ion energy correction of RG in V/eV
             tof_energy = float(values['-ION_ENERGY-']) - tps2setpoint['TOFREF']
@@ -417,7 +416,7 @@ def main():
             window['-TOFEXTR1-'].update(value=round(tps2setpoint['TOFEXTR1'] + tof_energy - float(values['-ION_ENERGY-']), 2))
             window['-IONEX-'].update(value=round(tps2setpoint['IONEX'] - V_extractor, 2))
             log.info('Updated set values from current TPS setpoints.')
-        elif event == '-ZERO_ALL-' or event == 'z:90':
+        elif event == '-ZERO_ALL-' or event == 'z:90':  # Ctrl-z
             zero_all()
             for key in V_INPUTS:
                 window[key].update(background_color='#6699CC')
