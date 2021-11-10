@@ -302,10 +302,10 @@ def scanning_thread(window, values):
         TwAddLogEntry(h5logtext, 0)
         set_voltages_ea(values, i)
         window['-ION_ENERGY-'].update(value=round(i, 2))
-        if exit_event.wait(timeout=time_per_step): break
+        window['-PROGRESS_BAR-'].update_bar(progress, 100)
         progress += 100 / ((end_energy - start_energy)/step_size)
-        window.write_event_value('-PROGRESS-', progress)
-
+        if exit_event.wait(timeout=time_per_step): break
+           
     log.info('Stopping acquisition.')
     TwStopAcquisition()
     time.sleep(1)
@@ -379,18 +379,6 @@ def main():
                 'TPS_PA                 = PA',
                 'TPS_MCP                = MCP',
                 title = 'Voltage mapping', line_width = 120, icon = 'tw.ico', font = ('Courier', 10))
-        elif event == '-PROGRESS-':
-            window['-PROGRESS_BAR-'].update_bar(values[event], 100)
-        # elif event == 'TPS IP address':
-        #     new_tps_ip=sg.popup_get_text('TPS IP address', default_text=tps_ip, size=(15,1), icon='tw.ico')
-        #     if new_tps_ip!=None:
-        #         tps_ip = new_tps_ip
-        #         rv = TwTpsConnect2(new_tps_ip.encode(), 1)
-        #         if rv != TwSuccess:
-        #             log.error('Failed to connect to TPS2.')
-        #         else:
-        #             log.info(f'TPS2 connected via {tps_ip}.')
-        #             # TwTpsSaveSetFile('TwTpsTempSetFile'.encode())
         elif event == '-START-':
             for key, state in {'-START-': True, '-STOP-': False}.items():
                 window[key].update(disabled=state)
