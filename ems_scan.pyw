@@ -2,7 +2,7 @@
 
 """Basic EMS voltage control and energy scanning"""
 
-__version__ = '0.2.3'
+__version__ = '0.2.4'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021, TOFWERK'
 
@@ -204,7 +204,7 @@ def make_window():
     # sg.theme('SystemDefaultForReal')
 
     # menu_def = [['&Settings', ['&TPS IP address']], ['&Help', ['&About']]]
-    menu_def = [['&Help', ['&About']]]
+    menu_def = [['&Help', ['&Keyboard shortcuts...', '&Voltage mapping...', '&About...']]]
     layout = [[sg.Menu(menu_def, key='-MENU-')]]
 
     layout += [[sg.Frame('Energies (eV)', 
@@ -217,25 +217,25 @@ def make_window():
 
     layout += [[sg.Frame('Voltages (V)',
         [[sg.Text('Orifice', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-ORIFICE-'),
-        sg.Text('Matsuda', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-MATSUDA-'),
-        sg.Text('TOF Extractor 1', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-TOFEXTR1-')],
-        [sg.Text('Lens 1', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-LENS1-'),
-        sg.Text('Inner Cylinder', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-INNER_CYL-'),
+        sg.Text('Matsuda', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-MATSUDA-'),
+        sg.Text('TOF Extractor 1', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-TOFEXTR1-')],
+        [sg.Text('Lens 1', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-LENS1-'),
+        sg.Text('Inner Cylinder', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-INNER_CYL-'),
         sg.Text('TOF Extractor 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-TOFEXTR2-')],
-        [sg.Text('Deflector 1 up', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-DEFL1U-'),
-        sg.Text('Outer Cylinder', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-OUTER_CYL-'),
+        [sg.Text('Deflector 1 up', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL1U-'),
+        sg.Text('Outer Cylinder', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-OUTER_CYL-'),
         sg.Text('TOF Pulse', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-TOFPULSE-')],
-        [sg.Text('Deflector 1 down', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-DEFL1D-'),
-        sg.Text('Lens 2', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-LENS2-'),
-        sg.Text('RG', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-RG-')],
-        [sg.Text('Deflector 1 left', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-DEFL1L-'),
-        sg.Text('Deflector 2', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-DEFL-'),
+        [sg.Text('Deflector 1 down', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL1D-'),
+        sg.Text('Lens 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-LENS2-'),
+        sg.Text('RG', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-RG-')],
+        [sg.Text('Deflector 1 left', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL1L-'),
+        sg.Text('Deflector 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL-'),
         sg.Text('RB', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-RB-')],
-        [sg.Text('Deflector 1 right', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-DEFL1R-'),
-        sg.Text('Deflector Flange 2', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-DEFLFL-'),
+        [sg.Text('Deflector 1 right', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL1R-'),
+        sg.Text('Deflector Flange 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFLFL-'),
         sg.Text('Drift', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DRIFT-')],
-        [sg.Text('Ion Extractor', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-IONEX-'), 
-        sg.Text('Reference', size=(15,1), font=('Helvetica', 10, 'italic')), sg.Input(default_text='0', size=(6,1), key='-REF-'), 
+        [sg.Text('Ion Extractor', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-IONEX-'), 
+        sg.Text('Reference', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-REF-'), 
         sg.Text('PA', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-PA-')],
         [sg.Text('', size=(1,1)), 
         sg.Text('', size=(1,1)), 
@@ -246,8 +246,8 @@ def make_window():
         )]]
 
     layout += [[sg.Button('Send all', key='-SET_TPS-', bind_return_key=True), sg.Button('Read setpoints', key='-READ_FROM_TPS-'),  
-        sg.Input(visible=False, enable_events=True, key='-LOAD-'), sg.FilesBrowse('Open...', initial_folder='setpoints', target='-LOAD-'), 
-        sg.Input(visible=False, enable_events=True, key='-SAVE-'), sg.FileSaveAs('Save...', default_extension = 'tps', initial_folder='setpoints', target='-SAVE-'),
+        sg.Input(visible=False, enable_events=True, key='-LOAD-'), sg.FileBrowse('Open...', initial_folder='setpoints', target='-LOAD-', key = '-LOAD2-'), 
+        sg.Input(visible=False, enable_events=True, key='-SAVE-'), sg.FileSaveAs('Save...', default_extension = 'tps', initial_folder='setpoints', target='-SAVE-', key = '-SAVE2-'),
         sg.Button('Zero all', key='-ZERO_ALL-')]]
 
     layout += [[sg.Frame('Scan', 
@@ -342,9 +342,43 @@ def main():
         event, values = window.read()
         if event == sg.WIN_CLOSED:
             break
-        elif event == 'About':
-            sg.popup('EMS scan software', 'Version ' + __version__,
+        elif event == 'About...':
+            sg.popup_no_buttons('EMS scan software', 'Version ' + __version__,
                 __copyright__, title = 'About', icon = 'tw.ico', image='tw.png')
+        elif event == 'Keyboard shortcuts...':
+            sg.popup_no_buttons(
+                'Send all:       Enter', 
+                'Read setpoints: Ctrl-R',
+                'Open...:        Ctrl-O',
+                'Save...:        Ctrl-S', 
+                'Zero all:       Ctrl-Z', 
+                title = 'Keyboard shortcuts', icon = 'tw.ico', font = ('Courier', 10))
+        elif event == 'Voltage mapping...':
+            sg.popup_no_buttons(
+                'TPS_Orifice            = Orifice',
+                'TPS_Lens_1             = Lens_1 + (Ion_energy - ESA_energy)',
+                'TPS_Deflector_1_up     = Deflector_1_up + (Ion_energy - ESA_energy)',
+                'TPS_Deflector_1_down   = Deflector_1_down + (Ion_energy - ESA_energy)',
+                'TPS_Deflector_1_left   = Deflector_1_left + (Ion_energy - ESA_energy)',
+                'TPS_Deflector_1_right  = Deflector_1_right + (Ion_energy - ESA_energy)',
+                'TPS_Ion_Extractor      = Ion_Extractor + (Ion_energy - ESA_energy)',
+                'TPS_Matsuda            = Matsuda + (Ion_energy - ESA_energy)',
+                'TPS_Inner_Cylinder     = Inner_Cylinder - V1 + (Ion_energy - ESA_energy)',
+                'TPS_Outer_Cylinder     = Outer_Cylinder - V2 + (Ion_energy - ESA_energy)',
+                'TPS_TOF_Reference      = Ion_energy - TOF_energy',
+                'TPS_Reference          = Reference + TPS_TOF_Reference',
+                'TPS_Lens_2             = Lens_2 + TPS_Reference',
+                'TPS_Deflector_2        = Deflector_2 + TPS_Reference',
+                'TPS_Deflector_Flange_2 = Deflector_Flange_2 + TPS_Reference',
+                'TPS_TOF_Extractor_1    = TOF_Extractor_1 + TPS_TOF_Reference', 
+                'TPS_TOF_Extractor_2    = TOF_Extractor_2',
+                'TPS_TOF_Pulse          = TOF_Pulse',
+                'TPS_RG                 = RG + TPS_TOF_Reference*0.25',
+                'TPS_RB                 = RB',
+                'TPS_Drift              = Drift',
+                'TPS_PA                 = PA',
+                'TPS_MCP                = MCP',
+                title = 'Voltage mapping', line_width = 120, icon = 'tw.ico', font = ('Courier', 10))
         elif event == '-PROGRESS-':
             window['-PROGRESS_BAR-'].update_bar(values[event], 100)
         # elif event == 'TPS IP address':
@@ -369,18 +403,22 @@ def main():
             log.warning('Stopped energy scan by user request.')
         elif event == 'Clear':
             window['-LOG_OUTPUT-'].update('')
+        elif event == 's:83':  # Ctrl-S
+            window['-SAVE2-'].Click()  # generate -SAVE- event
         elif event == '-SAVE-':
             if values[event]!='':
                 save_setpoints(values[event], setpoints, values)
                 log.info(f'Set values saved to {os.path.basename(values[event])}')
-            window['-SAVE-'].update('')  # fix for cancel button bug (https://github.com/PySimpleGUI/PySimpleGUI/issues/3366)
+            window['-SAVE-'].update('')  # fix for cancel button issue (https://github.com/PySimpleGUI/PySimpleGUI/issues/3366)
+        elif event == 'o:79':  # Ctrl-O
+            window['-LOAD2-'].Click()  # generate -LOAD- event
         elif event == '-LOAD-':
             if values[event]!='':
                 setpoints=load_setpoints(values[event])
                 for key in SETPOINTS:
                     window[key].update(value=setpoints[key])
                 log.info(f'Set values loaded from {os.path.basename(values[event])}')
-            window['-LOAD-'].update('')  # fix for cancel button bug (https://github.com/PySimpleGUI/PySimpleGUI/issues/3366)
+            window['-LOAD-'].update('')
         elif event == '-SET_TPS-':
             ion_energy = float(values['-ION_ENERGY-'])
             set_voltages_ea(values, ion_energy)
@@ -388,11 +426,11 @@ def main():
             for key in V_INPUTS:
                 window[key].update(background_color='#99C794')
             log.info('TPS voltages set.')
-        elif event == '-READ_FROM_TPS-' or event == 'r:82':  # Ctrl-r
+        elif event == '-READ_FROM_TPS-' or event == 'r:82':  # Ctrl-R
             tps2setpoint = read_setpoints_from_tps()
             rg_correction = 0.25  # ion energy correction of RG in V/eV
             tof_energy = float(values['-ION_ENERGY-']) - tps2setpoint['TOFREF']
-            V_extractor = float(values['-ION_ENERGY-'])-float(values['-ESA_ENERGY-'])
+            V_extractor = float(values['-ION_ENERGY-']) - float(values['-ESA_ENERGY-'])
             V1, V2 = calculate_EA_voltages(float(values['-ESA_ENERGY-']), polarity=1)
             window['-MCP-'].update(value=round(tps2setpoint['MCP'], 2))
             window['-PA-'].update(value=round(tps2setpoint['PA'], 2))
@@ -418,7 +456,7 @@ def main():
             window['-TOFEXTR1-'].update(value=round(tps2setpoint['TOFEXTR1'] + tof_energy - float(values['-ION_ENERGY-']), 2))
             window['-IONEX-'].update(value=round(tps2setpoint['IONEX'] - V_extractor, 2))
             log.info('Updated set values from current TPS setpoints.')
-        elif event == '-ZERO_ALL-' or event == 'z:90':  # Ctrl-z
+        elif event == '-ZERO_ALL-' or event == 'z:90':  # Ctrl-Z
             zero_all()
             for key in V_INPUTS:
                 window[key].update(background_color='#6699CC')
