@@ -2,7 +2,7 @@
 
 """Basic EMS voltage control and energy scanning"""
 
-__version__ = '0.2.2'
+__version__ = '0.2.3'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021, TOFWERK'
 
@@ -246,8 +246,8 @@ def make_window():
         )]]
 
     layout += [[sg.Button('Send all', key='-SET_TPS-', bind_return_key=True), sg.Button('Read setpoints', key='-READ_FROM_TPS-'),  
-        sg.Input(visible=False, enable_events=True, do_not_clear=False, key='-LOAD-'), sg.FilesBrowse('Open...', initial_folder='setpoints', target='-LOAD-'), 
-        sg.Input(visible=False, enable_events=True, do_not_clear=False, key='-SAVE-'), sg.FileSaveAs('Save...', default_extension = 'tps', initial_folder='setpoints', target='-SAVE-'),
+        sg.Input(visible=False, enable_events=True, key='-LOAD-'), sg.FilesBrowse('Open...', initial_folder='setpoints', target='-LOAD-'), 
+        sg.Input(visible=False, enable_events=True, key='-SAVE-'), sg.FileSaveAs('Save...', default_extension = 'tps', initial_folder='setpoints', target='-SAVE-'),
         sg.Button('Zero all', key='-ZERO_ALL-')]]
 
     layout += [[sg.Frame('Scan', 
@@ -373,12 +373,14 @@ def main():
             if values[event]!='':
                 save_setpoints(values[event], setpoints, values)
                 log.info(f'Set values saved to {os.path.basename(values[event])}')
+            window['-SAVE-'].update('')  # fix for cancel button bug (https://github.com/PySimpleGUI/PySimpleGUI/issues/3366)
         elif event == '-LOAD-':
             if values[event]!='':
                 setpoints=load_setpoints(values[event])
                 for key in SETPOINTS:
                     window[key].update(value=setpoints[key])
                 log.info(f'Set values loaded from {os.path.basename(values[event])}')
+            window['-LOAD-'].update('')  # fix for cancel button bug (https://github.com/PySimpleGUI/PySimpleGUI/issues/3366)
         elif event == '-SET_TPS-':
             ion_energy = float(values['-ION_ENERGY-'])
             set_voltages_ea(values, ion_energy)
