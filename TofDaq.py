@@ -652,15 +652,15 @@ def TwTpsLoadSetFile(setFile):
     libTofDaq._TwTpsLoadSetFile.argtypes = [ct.c_char_p]
     return libTofDaq._TwTpsLoadSetFile(setFile)
 
-def TwTpsLoadSetFile(setFile):
+def TwTpsSaveSetFile(setFile):
     libTofDaq._TwTpsLoadSetFile.argtypes = [ct.c_char_p]
-    return libTofDaq._TwTpsLoadSetFile(setFile)
+    return libTofDaq._TwTpsSaveSetFile(setFile)
 
 def TwTpsSaveSetFile2(setFile, rcBlackList, blackListLength, rcWhiteList, whiteListLength):
     libTofDaq._TwTpsSaveSetFile2.argtypes = [ct.c_char_p,
-                                             c_void_p if rcBlackList is None else ndpointer(np.int32, shape=blackListLength),
+                                             ct.c_void_p if rcBlackList is None else ndpointer(np.int32, shape=blackListLength),
                                              ct.c_int,
-                                             c_void_p if rcWhiteList is None else ndpointer(np.int32, shape=whiteListLength),
+                                             ct.c_void_p if rcWhiteList is None else ndpointer(np.int32, shape=whiteListLength),
                                              ct.c_int]
     return libTofDaq._TwTpsSaveSetFile2(setFile, rcBlackList, blackListLength, rcWhiteList, whiteListLength)
 

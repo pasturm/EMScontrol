@@ -2,7 +2,7 @@
 
 """Basic EMS voltage control and energy scanning"""
 
-__version__ = '0.2.4'
+__version__ = '0.2.5'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021, TOFWERK'
 
@@ -252,9 +252,9 @@ def make_window():
 
     layout += [[sg.Frame('Scan', 
         [[sg.Text('Start ion energy (eV)', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-START_ENERGY-'),
-        sg.Text('End ion energy (eV)', size=(15,1)), sg.Input(default_text='100', size=(6,1), key='-END_ENERGY-'),
-        sg.Text('Step size (eV)', size=(15,1)), sg.Input(default_text='10', size=(6,1), key='-STEP_SIZE-')],
-        [sg.Text('Time per step (s)', size=(15,1)), sg.Input(default_text='1', size=(6,1), key='-TIME_PER_STEP-')],
+        sg.Text('End ion energy (eV)', size=(15,1)), sg.Input(default_text='50', size=(6,1), key='-END_ENERGY-'),
+        sg.Text('Step size (eV)', size=(15,1)), sg.Input(default_text='0.5', size=(6,1), key='-STEP_SIZE-')],
+        [sg.Text('Time per step (s)', size=(15,1)), sg.Input(default_text='2', size=(6,1), key='-TIME_PER_STEP-')],
         [sg.Button('Start', key='-START-'), sg.Button('Cancel', key='-STOP-'),
         sg.ProgressBar(max_value=100, orientation='h', size=(20, 10), key='-PROGRESS_BAR-', expand_x=True)]]
         )]]
@@ -275,7 +275,9 @@ def scanning_thread(window, values):
     step_size = float(values['-STEP_SIZE-'])  # energy step stize, eV
     time_per_step = float(values['-TIME_PER_STEP-'])  # time per energy step, s
 
-    # TwTpsSaveSetFile('TwTpsTempSetFile'.encode())
+    TwTpsSaveSetFile('TwTpsTempSetFile'.encode())
+
+    save_setpoints('./TmpScan.tps'.encode(), SETPOINTS, values)
     set_voltages_ea(values, start_energy)
     window['-ION_ENERGY-'].update(value=values['-START_ENERGY-'])
 
@@ -290,11 +292,11 @@ def scanning_thread(window, values):
     log.info('Starting TofDaq acquisition.')
     if exit_event.wait(timeout=1): exit_event.set()
 
-    TwAddAttributeDouble('/'.encode(), 'start energy (eV)'.encode(), start_energy)
-    TwAddAttributeDouble('/'.encode(), 'end energy (eV)'.encode(), end_energy)
-    TwAddAttributeDouble('/'.encode(), 'step size (eV)'.encode(), step_size)
-    TwAddAttributeDouble('/'.encode(), 'time_per_step (s)'.encode(), time_per_step)
-
+    TwAddAttributeDouble('/EnergyData'.encode(), 'Start energy (eV)'.encode(), start_energy)
+    TwAddAttributeDouble('/EnergyData'.encode(), 'End energy (eV)'.encode(), end_energy)
+    TwAddAttributeDouble('/EnergyData'.encode(), 'Step size (eV)'.encode(), step_size)
+    TwAddAttributeDouble('/EnergyData'.encode(), 'Time_per_step (s)'.encode(), time_per_step)
+   
     # start energy scan
     log.info('Scanning...')
     for i in np.arange(start_energy, end_energy+1e-6, step_size, dtype=float):
@@ -302,15 +304,21 @@ def scanning_thread(window, values):
         TwAddLogEntry(h5logtext, 0)
         set_voltages_ea(values, i)
         window['-ION_ENERGY-'].update(value=round(i, 2))
+        TwUpdateUserData('/EnergyData'.encode(), 2, np.array([i, values['-ESA_ENERGY-']], dtype=np.float64))
         window['-PROGRESS_BAR-'].update_bar(progress, 100)
         progress += 100 / ((end_energy - start_energy)/step_size)
         if exit_event.wait(timeout=time_per_step): break
            
     log.info('Stopping acquisition.')
     TwStopAcquisition()
-    time.sleep(1)
-    TwLoadIniFile(''.encode())
-    # TwTpsLoadSetFile('TwTpsTempSetFile'.encode())
+    time.sleep(2)
+    rv = TwLoadIniFile(''.encode())
+    # log.info(TwTranslateReturnValue(rv).decode())
+    TwTpsLoadSetFile('TwTpsTempSetFile'.encode())
+    setpoints = load_setpoints('./TmpScan.tps'.encode())
+    for key in SETPOINTS:
+        window[key].update(value=setpoints[key])
+    TwUpdateUserData('/EnergyData'.encode(), 2, np.array([values['-ION_ENERGY-'], values['-ESA_ENERGY-']], dtype=np.float64))
     log.info('Energy scan completed.')
     [window[key].update(disabled=value) for key, value in {'-START-': False, '-STOP-': True}.items()]
 
@@ -336,6 +344,9 @@ def main():
 
     for key, state in {'-START-': False, '-STOP-': True}.items():
         window[key].update(disabled=state)
+
+    # Store Ion and ESA energy as a registered data source
+    TwRegisterUserDataBufPy('/EnergyData', ['Ion energy (eV)', 'ESA energy (eV)'], 0)
 
     # Event Loop 
     while True:
@@ -413,6 +424,7 @@ def main():
             set_voltages_tof(values)
             for key in V_INPUTS:
                 window[key].update(background_color='#99C794')
+            TwUpdateUserData('/EnergyData'.encode(), 2, np.array([values['-ION_ENERGY-'], values['-ESA_ENERGY-']], dtype=np.float64))
             log.info('TPS voltages set.')
         elif event == '-READ_FROM_TPS-' or event == 'r:82':  # Ctrl-R
             tps2setpoint = read_setpoints_from_tps()
@@ -450,6 +462,7 @@ def main():
                 window[key].update(background_color='#6699CC')
             log.info('All voltages set to zero.')
 
+    TwUnregisterUserData('/EnergyData'.encode())
     TwTpsDisconnect()
     TwCleanupDll()
 
