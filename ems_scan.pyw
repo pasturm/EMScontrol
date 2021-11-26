@@ -299,12 +299,14 @@ def scanning_thread(window, values):
     if TwDaqActive():
         log.warning('Stopping already running acquisition...')
         TwStopAcquisition()
-        if exit_event.wait(timeout=5): exit_event.set()
+        while TwDaqActive():  # wait until acquisition is stopped
+            if exit_event.wait(timeout=1): exit_event.set()
     TwSaveIniFile(''.encode())
     TwSetDaqParameter('DataFileName'.encode(), 'EMSscan_<year>-<month>-<day>_<hour>h<minute>m<second>s.h5'.encode())
     TwStartAcquisition()
     log.info('Starting TofDaq acquisition.')
-    if exit_event.wait(timeout=1): exit_event.set()
+    while not TwDaqActive():  # wait until acquisition is started
+        if exit_event.wait(timeout=1): exit_event.set()
 
     TwAddAttributeDouble('/EnergyData'.encode(), 'Start energy (eV)'.encode(), start_energy)
     TwAddAttributeDouble('/EnergyData'.encode(), 'End energy (eV)'.encode(), end_energy)
@@ -325,9 +327,9 @@ def scanning_thread(window, values):
            
     log.info('Stopping acquisition.')
     TwStopAcquisition()
-    time.sleep(2)
-    rv = TwLoadIniFile(''.encode())
-    # log.info(TwTranslateReturnValue(rv).decode())
+    while TwDaqActive():  # wait until acquisition is stopped
+        if exit_event.wait(timeout=1): exit_event.set()
+    TwLoadIniFile(''.encode())
     TwTpsLoadSetFile('TwTpsTempSetFile'.encode())
     setpoints = load_setpoints('./TmpScan.tps'.encode())
     if os.path.exists('./TwTpsTempSetFile'): os.remove('./TwTpsTempSetFile')
