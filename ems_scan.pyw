@@ -386,16 +386,16 @@ def main():
         elif event == 'Voltage mapping...':
             sg.popup_no_buttons(
                 'TPS_Orifice            = Orifice',
-                'TPS_Lens_1             = Lens_1 + (Ion_energy - ESA_energy)',
-                'TPS_Deflector_1_up     = Deflector_1_up + (Ion_energy - ESA_energy)',
-                'TPS_Deflector_1_down   = Deflector_1_down + (Ion_energy - ESA_energy)',
-                'TPS_Deflector_1_left   = Deflector_1_left + (Ion_energy - ESA_energy)',
-                'TPS_Deflector_1_right  = Deflector_1_right + (Ion_energy - ESA_energy)',
-                'TPS_Ion_Extractor      = Ion_Extractor + (Ion_energy - ESA_energy)',
-                'TPS_Matsuda            = Matsuda + (Ion_energy - ESA_energy)',
-                'TPS_Inner_Cylinder     = Inner_Cylinder - V1 + (Ion_energy - ESA_energy)',
-                'TPS_Outer_Cylinder     = Outer_Cylinder - V2 + (Ion_energy - ESA_energy)',
-                'TPS_TOF_Reference      = Ion_energy - TOF_energy',
+                'TPS_Lens_1             = Lens_1 + V*',
+                'TPS_Deflector_1_up     = Deflector_1_up + V*',
+                'TPS_Deflector_1_down   = Deflector_1_down + V*',
+                'TPS_Deflector_1_left   = Deflector_1_left + V*',
+                'TPS_Deflector_1_right  = Deflector_1_right + V*',
+                'TPS_Ion_Extractor      = Ion_Extractor + V*',
+                'TPS_Matsuda            = Matsuda + V*',
+                'TPS_Inner_Cylinder     = Inner_Cylinder - 0.26706*ESA_energy*V/eV + V*',
+                'TPS_Outer_Cylinder     = Outer_Cylinder + 0.23558*ESA_energy*V/eV + V*',
+                'TPS_TOF_Reference      = (Ion_energy - TOF_energy)*V/eV',
                 'TPS_Reference          = Reference + TPS_TOF_Reference',
                 'TPS_Lens_2             = Lens_2 + TPS_Reference',
                 'TPS_Deflector_2        = Deflector_2 + TPS_Reference',
@@ -408,6 +408,7 @@ def main():
                 'TPS_Drift              = Drift',
                 'TPS_PA                 = PA',
                 'TPS_MCP                = MCP',
+                'V* = (Ion_energy - ESA_energy)*V/eV',
                 title = 'Voltage mapping', line_width = 120, icon = 'tw.ico', font = ('Courier', 10))
         elif event == '-START-':
             for key, state in {'-START-': True, '-STOP-': False}.items():
