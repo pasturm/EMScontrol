@@ -289,6 +289,14 @@ def bind_mouse_wheel(window):
 
 def scanning_thread(window, values):
     """Energy scanning"""
+    if not TwTofDaqRunning():
+        log.error('TofDaqRec not running.')
+        return
+
+    for key, state in {'-START-': True, '-STOP-': False}.items(): window[key].update(disabled=state)
+
+    log.info('Energy scan started.')
+
     progress = 0
 
     start_energy = float(values['-START_ENERGY-'])  # start energy, eV
@@ -307,13 +315,13 @@ def scanning_thread(window, values):
         log.warning('Stopping already running acquisition...')
         TwStopAcquisition()
         while TwDaqActive():  # wait until acquisition is stopped
-            if exit_event.wait(timeout=1): exit_event.set()
+            if exit_event.wait(timeout=1): break
     TwSaveIniFile(''.encode())
     TwSetDaqParameter('DataFileName'.encode(), 'EMSscan_<year>-<month>-<day>_<hour>h<minute>m<second>s.h5'.encode())
     TwStartAcquisition()
     log.info('Starting TofDaq acquisition.')
     while not TwDaqActive():  # wait until acquisition is started
-        if exit_event.wait(timeout=1): exit_event.set()
+        if exit_event.wait(timeout=1): break
 
     TwAddAttributeDouble('/EnergyData'.encode(), 'Start energy (eV)'.encode(), start_energy)
     TwAddAttributeDouble('/EnergyData'.encode(), 'End energy (eV)'.encode(), end_energy)
@@ -335,7 +343,7 @@ def scanning_thread(window, values):
     log.info('Stopping acquisition.')
     TwStopAcquisition()
     while TwDaqActive():  # wait until acquisition is stopped
-        if exit_event.wait(timeout=1): exit_event.set()
+        if exit_event.wait(timeout=1): break
     TwLoadIniFile(''.encode())
     TwTpsLoadSetFile('TwTpsTempSetFile'.encode())
     setpoints = load_setpoints('./TmpScan.tps'.encode())
@@ -346,6 +354,7 @@ def scanning_thread(window, values):
     TwUpdateUserData('/EnergyData'.encode(), 2, np.array([values['-ION_ENERGY-'], values['-ESA_ENERGY-']], dtype=np.float64))
     log.info('Energy scan completed.')
     [window[key].update(disabled=value) for key, value in {'-START-': False, '-STOP-': True}.items()]
+    exit_event.clear()  # clear exit flag
 
 
 def main():
@@ -426,15 +435,10 @@ def main():
                 'V* = (Ion_energy - ESA_energy)*V/eV',
                 title = 'Voltage mapping', line_width = 120, icon = 'tw.ico', font = ('Courier', 10))
         elif event == '-START-':
-            for key, state in {'-START-': True, '-STOP-': False}.items():
-                window[key].update(disabled=state)
-            log.info('Energy scan started.')
             threading.Thread(target=scanning_thread, args=(window,values,), daemon=True).start()
         elif event == '-STOP-':
-            # [window[key].update(disabled=value) for key, value in {'-START-': False, '-STOP-': True}.items()]
             exit_event.set()
-            exit_event.clear()
-            log.warning('Stopped energy scan by user request.')
+            log.warning('Stopping energy scan by user request.')
         elif event == 'Clear':
             window['-LOG_OUTPUT-'].update('')
         elif event == '+SAVE+':  # Ctrl-s
@@ -496,9 +500,10 @@ def main():
             for key in V_INPUTS:
                 window[key].update(background_color='#6699CC')
             log.info('All voltages set to zero.')
-        elif re.search('\+MOUSE WHEEL\+$', event) is not None:
+        # elif re.search('\+MOUSE WHEEL\+$', event) is not None:
+        elif event.endswith('+MOUSE WHEEL+'):
             key = re.split(',', event)[0]
-            window[key].update(value=float(values[key]) - float(window[key].user_bind_event.delta/120))
+            window[key].update(value=round(float(values[key]) - float(window[key].user_bind_event.delta/120), 2))
 
     TwUnregisterUserData('/EnergyData'.encode())
     TwTpsDisconnect()
