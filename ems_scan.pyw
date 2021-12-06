@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.2.5'
+__version__ = '0.3.0'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021, TOFWERK'
 
@@ -14,6 +14,7 @@ import logging
 import threading
 import os
 import copy
+import re
 import PySimpleGUI as sg
 from json import (load as jsonload, dump as jsondump)
 from TofDaq import *
@@ -277,7 +278,13 @@ def make_window():
         right_click_menu=['', ['&Clear']], background_color=sg.theme_background_color(), 
         text_color=sg.theme_element_text_color(), no_scrollbar=True, expand_x=True)]]
 
-    return sg.Window('EMS scan | TOFWERK', layout, icon='tw.ico', resizable=True, finalize=True, return_keyboard_events=True)
+    return sg.Window('EMS scan | TOFWERK', layout, icon='tw.ico', resizable=True, finalize=True, return_keyboard_events=False)
+
+
+def bind_mouse_wheel(window):
+    """Bind mouse wheel to text inputs"""
+    for key in SETPOINTS:
+        window[key].bind('<MouseWheel>', ',+MOUSE WHEEL+')
 
 
 def scanning_thread(window, values):
@@ -364,6 +371,14 @@ def main():
     for key, state in {'-START-': False, '-STOP-': True}.items():
         window[key].update(disabled=state)
 
+    # keyboard shortcuts
+    window.bind('<Control-o>', '+OPEN+')  
+    window.bind('<Control-s>', '+SAVE+')
+    window.bind('<Control-z>', '+ZERO+')
+
+    # bind mouse wheel to element keys
+    bind_mouse_wheel(window)
+
     # Store Ion and ESA energy as a registered data source
     TwRegisterUserDataBufPy('/EnergyData', ['Ion energy (eV)', 'ESA energy (eV)'], 0)
 
@@ -422,14 +437,14 @@ def main():
             log.warning('Stopped energy scan by user request.')
         elif event == 'Clear':
             window['-LOG_OUTPUT-'].update('')
-        elif event == 's:83':  # Ctrl-S
+        elif event == '+SAVE+':  # Ctrl-s
             window['-SAVE2-'].Click()  # generate -SAVE- event
         elif event == '-SAVE-':
             if values[event]!='':
                 save_setpoints(values[event], setpoints, values)
                 log.info(f'Set values saved to {os.path.basename(values[event])}')
             window['-SAVE-'].update('')  # fix for cancel button issue (https://github.com/PySimpleGUI/PySimpleGUI/issues/3366)
-        elif event == 'o:79':  # Ctrl-O
+        elif event == '+OPEN+':  # Ctrl-o
             window['-LOAD2-'].Click()  # generate -LOAD- event
         elif event == '-LOAD-':
             if values[event]!='':
@@ -476,11 +491,14 @@ def main():
             window['-TOFEXTR1-'].update(value=round(tps2setpoint['TOFEXTR1'] + tof_energy - float(values['-ION_ENERGY-']), 2))
             window['-IONEX-'].update(value=round(tps2setpoint['IONEX'] - V_extractor, 2))
             log.info('Updated set values from current TPS setpoints.')
-        elif event == '-ZERO_ALL-' or event == 'z:90':  # Ctrl-Z
+        elif event == '-ZERO_ALL-' or event == '+ZERO+':  # Ctrl-z
             zero_all()
             for key in V_INPUTS:
                 window[key].update(background_color='#6699CC')
             log.info('All voltages set to zero.')
+        elif re.search('\+MOUSE WHEEL\+$', event) is not None:
+            key = re.split(',', event)[0]
+            window[key].update(value=float(values[key]) - float(window[key].user_bind_event.delta/120))
 
     TwUnregisterUserData('/EnergyData'.encode())
     TwTpsDisconnect()
