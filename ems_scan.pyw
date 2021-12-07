@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.3.4'
+__version__ = '0.3.5'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021, TOFWERK'
 
@@ -303,7 +303,15 @@ def scanning_thread(window, values):
     start_energy = float(values['-START_ENERGY-'])  # start energy, eV
     end_energy = float(values['-END_ENERGY-'])  # end energy, eV
     step_size = float(values['-STEP_SIZE-'])  # energy step stize, eV
+    if step_size == 0:
+        log.error('Step size must not be 0 eV.')
+        [window[key].update(disabled=value) for key, value in {'-START-': False, '-STOP-': True}.items()]
+        return
     time_per_step = float(values['-TIME_PER_STEP-'])  # time per energy step, s
+    if time_per_step <= 0:
+        log.error('Time per step must be larger than 0 s.')
+        [window[key].update(disabled=value) for key, value in {'-START-': False, '-STOP-': True}.items()]
+        return
 
     TwTpsSaveSetFile('TwTpsTempSetFile'.encode())
     save_setpoints('./currentSetpoints.tps'.encode(), SETPOINTS, values)
