@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.3.2'
+__version__ = '0.3.3'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021, TOFWERK'
 
@@ -406,7 +406,7 @@ def main():
             break
         elif event == 'About...':
             sg.popup_no_buttons('EMS scan software', 'Version ' + __version__,
-                __copyright__, title = 'About', icon = 'tw.ico', image='tw.png')
+                __copyright__, title = 'About', icon = 'tw.ico', image='tw.png', non_blocking = True)
         elif event == 'Keyboard shortcuts...':
             sg.popup_no_buttons(
                 'Send all:       Enter', 
@@ -414,7 +414,7 @@ def main():
                 'Open...:        Ctrl-O',
                 'Save...:        Ctrl-S', 
                 'Zero all:       Ctrl-Z', 
-                title = 'Keyboard shortcuts', icon = 'tw.ico', font = ('Courier', 10))
+                title = 'Keyboard shortcuts', icon = 'tw.ico', font = ('Courier', 10), non_blocking = True)
         elif event == 'Voltage mapping...':
             sg.popup_no_buttons(
                 'TPS_Orifice            = Orifice',
@@ -441,7 +441,8 @@ def main():
                 'TPS_PA                 = PA',
                 'TPS_MCP                = MCP',
                 'V* = (Ion_energy - ESA_energy)*V/eV',
-                title = 'Voltage mapping', line_width = 120, icon = 'tw.ico', font = ('Courier', 10))
+                title = 'Voltage mapping', line_width = 120, icon = 'tw.ico', 
+                font = ('Courier', 10), non_blocking = True)
         elif event == '-START-':
             threading.Thread(target=scanning_thread, args=(window,values,), daemon=True).start()
         elif event == '-STOP-':
