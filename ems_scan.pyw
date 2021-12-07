@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.3.0'
+__version__ = '0.3.1'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021, TOFWERK'
 
@@ -278,7 +278,8 @@ def make_window():
         right_click_menu=['', ['&Clear']], background_color=sg.theme_background_color(), 
         text_color=sg.theme_element_text_color(), no_scrollbar=True, expand_x=True)]]
 
-    return sg.Window('EMS scan | TOFWERK', layout, icon='tw.ico', resizable=True, finalize=True, return_keyboard_events=False)
+    return sg.Window('EMS scan | TOFWERK', layout, icon='tw.ico', resizable=True, finalize=True, 
+        return_keyboard_events=False, enable_close_attempted_event=True)
 
 
 def bind_mouse_wheel(window):
@@ -305,7 +306,7 @@ def scanning_thread(window, values):
     time_per_step = float(values['-TIME_PER_STEP-'])  # time per energy step, s
 
     TwTpsSaveSetFile('TwTpsTempSetFile'.encode())
-    save_setpoints('./TmpScan.tps'.encode(), SETPOINTS, values)
+    save_setpoints('./currentSetpoints.tps'.encode(), SETPOINTS, values)
 
     set_voltages_ea(values, start_energy)
     window['-ION_ENERGY-'].update(value=values['-START_ENERGY-'])
@@ -346,9 +347,8 @@ def scanning_thread(window, values):
         if exit_event.wait(timeout=1): break
     TwLoadIniFile(''.encode())
     TwTpsLoadSetFile('TwTpsTempSetFile'.encode())
-    setpoints = load_setpoints('./TmpScan.tps'.encode())
     if os.path.exists('./TwTpsTempSetFile'): os.remove('./TwTpsTempSetFile')
-    if os.path.exists('./TmpScan.tps'): os.remove('./TmpScan.tps')
+    setpoints = load_setpoints('./currentSetpoints.tps'.encode())
     for key in SETPOINTS:
         window[key].update(value=setpoints[key])
     TwUpdateUserData('/EnergyData'.encode(), 2, np.array([values['-ION_ENERGY-'], values['-ESA_ENERGY-']], dtype=np.float64))
@@ -360,8 +360,14 @@ def scanning_thread(window, values):
 def main():
     window = make_window()
     
-    setpoints = SETPOINTS
-    
+    # load previous settings
+    if os.path.exists('./currentSetpoints.tps'):
+        setpoints = load_setpoints('./currentSetpoints.tps'.encode())
+        for key in SETPOINTS:
+            window[key].update(value=setpoints[key])
+    else:
+        setpoints = SETPOINTS
+
     logging.basicConfig(stream=sys.stdout, format='%(asctime)s [%(levelname)s] %(message)s', 
         datefmt='%Y-%m-%d %H:%M:%S', level=logging.DEBUG)
 
@@ -394,7 +400,7 @@ def main():
     # Event Loop 
     while True:
         event, values = window.read()
-        if event == sg.WIN_CLOSED:
+        if event == sg.WINDOW_CLOSE_ATTEMPTED_EVENT:
             break
         elif event == 'About...':
             sg.popup_no_buttons('EMS scan software', 'Version ' + __version__,
@@ -505,6 +511,7 @@ def main():
             key = re.split(',', event)[0]
             window[key].update(value=round(float(values[key]) - float(window[key].user_bind_event.delta/120), 2))
 
+    save_setpoints('./currentSetpoints.tps'.encode(), SETPOINTS, values)
     TwUnregisterUserData('/EnergyData'.encode())
     TwTpsDisconnect()
     TwCleanupDll()
