@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.3.1'
+__version__ = '0.3.2'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021, TOFWERK'
 
@@ -258,8 +258,8 @@ def make_window():
         sg.Input(visible=False, default_text='-4000', key='-HVNEG-'),
         sg.Input(visible=False, default_text='1', key='-HVSUPPLY-')]]
         )]]
-
-    layout += [[sg.Button('Send all', key='-SET_TPS-', bind_return_key=True), sg.Button('Read setpoints', key='-READ_FROM_TPS-'),  
+  
+    layout += [[sg.Button('Send all', key='-SET_TPS-'), sg.Button('Read setpoints', key='-READ_FROM_TPS-'),  
         sg.Input(visible=False, enable_events=True, key='-LOAD-'), sg.FileBrowse('Open...', initial_folder='setpoints', target='-LOAD-', key = '-LOAD2-'), 
         sg.Input(visible=False, enable_events=True, key='-SAVE-'), sg.FileSaveAs('Save...', default_extension = 'tps', initial_folder='setpoints', target='-SAVE-', key = '-SAVE2-'),
         sg.Button('Zero all', key='-ZERO_ALL-')]]
@@ -390,6 +390,8 @@ def main():
     window.bind('<Control-o>', '+OPEN+')  
     window.bind('<Control-s>', '+SAVE+')
     window.bind('<Control-z>', '+ZERO+')
+    window.bind('<Control-r>', '+READ+')
+    window.bind('<Return>', '+SEND+')
 
     # bind mouse wheel to element keys
     bind_mouse_wheel(window)
@@ -463,7 +465,7 @@ def main():
                     window[key].update(value=setpoints[key])
                 log.info(f'Set values loaded from {os.path.basename(values[event])}')
             window['-LOAD-'].update('')
-        elif event == '-SET_TPS-':
+        elif event in ('-SET_TPS-', '+SEND+'):
             ion_energy = float(values['-ION_ENERGY-'])
             set_voltages_ea(values, ion_energy)
             set_voltages_tof(values)
@@ -471,7 +473,7 @@ def main():
                 window[key].update(background_color='#99C794')
             TwUpdateUserData('/EnergyData'.encode(), 2, np.array([values['-ION_ENERGY-'], values['-ESA_ENERGY-']], dtype=np.float64))
             log.info('TPS voltages set.')
-        elif event == '-READ_FROM_TPS-' or event == 'r:82':  # Ctrl-R
+        elif event in ('-READ_FROM_TPS-', '+READ+'):  # Ctrl-r
             tps2setpoint = read_setpoints_from_tps()
             rg_correction = 0.25  # ion energy correction of RG in V/eV
             tof_energy = float(values['-ION_ENERGY-']) - tps2setpoint['TOFREF']
@@ -501,7 +503,7 @@ def main():
             window['-TOFEXTR1-'].update(value=round(tps2setpoint['TOFEXTR1'] + tof_energy - float(values['-ION_ENERGY-']), 2))
             window['-IONEX-'].update(value=round(tps2setpoint['IONEX'] - V_extractor, 2))
             log.info('Updated set values from current TPS setpoints.')
-        elif event == '-ZERO_ALL-' or event == '+ZERO+':  # Ctrl-z
+        elif event in ('-ZERO_ALL-', '+ZERO+'):  # Ctrl-z
             zero_all()
             for key in V_INPUTS:
                 window[key].update(background_color='#6699CC')
@@ -509,7 +511,11 @@ def main():
         # elif re.search('\+MOUSE WHEEL\+$', event) is not None:
         elif event.endswith('+MOUSE WHEEL+'):
             key = re.split(',', event)[0]
-            window[key].update(value=round(float(values[key]) - float(window[key].user_bind_event.delta/120), 2))
+            if key in ('-INNER_CYL-', '-OUTER_CYL-', '-STEP_SIZE-'):
+                scroll_stepsize = 0.1
+            else:
+                scroll_stepsize = 1
+            window[key].update(value=round(float(values[key]) - float(window[key].user_bind_event.delta/120*scroll_stepsize), 2))
 
     save_setpoints('./currentSetpoints.tps'.encode(), SETPOINTS, values)
     TwUnregisterUserData('/EnergyData'.encode())
