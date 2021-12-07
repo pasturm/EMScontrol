@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.3.3'
+__version__ = '0.3.4'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021, TOFWERK'
 
@@ -391,7 +391,8 @@ def main():
     window.bind('<Control-s>', '+SAVE+')
     window.bind('<Control-z>', '+ZERO+')
     window.bind('<Control-r>', '+READ+')
-    window.bind('<Return>', '+SEND+')
+    window.bind('<Return>',    '+SEND+')
+    window.bind('<Button-2>',  '+SEND2+')  # mouse scroll wheel
 
     # bind mouse wheel to element keys
     bind_mouse_wheel(window)
@@ -409,7 +410,7 @@ def main():
                 __copyright__, title = 'About', icon = 'tw.ico', image='tw.png', non_blocking = True)
         elif event == 'Keyboard shortcuts...':
             sg.popup_no_buttons(
-                'Send all:       Enter', 
+                'Send all:       Enter or Scroll Wheel Click', 
                 'Read setpoints: Ctrl-R',
                 'Open...:        Ctrl-O',
                 'Save...:        Ctrl-S', 
@@ -466,7 +467,7 @@ def main():
                     window[key].update(value=setpoints[key])
                 log.info(f'Set values loaded from {os.path.basename(values[event])}')
             window['-LOAD-'].update('')
-        elif event in ('-SET_TPS-', '+SEND+'):
+        elif event in ('-SET_TPS-', '+SEND+', '+SEND2+'):
             ion_energy = float(values['-ION_ENERGY-'])
             set_voltages_ea(values, ion_energy)
             set_voltages_tof(values)
