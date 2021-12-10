@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.3.5'
+__version__ = '0.3.7'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021, TOFWERK'
 
@@ -13,10 +13,10 @@ import math
 import logging
 import threading
 import os
+import json
 import copy
 import re
 import PySimpleGUI as sg
-from json import (load as jsonload, dump as jsondump)
 from TofDaq import *
 from TwTool import *
 
@@ -98,7 +98,7 @@ def calculate_EA_voltages(ea_energy, r0 = 0.100, d = 0.0125, polarity = 1):
 
 
 def tps_error_log(rv, key):
-    if (rv != TwSuccess): log.error(f"Failed to set value for RC code {tps1rc[key]}: {TwTranslateReturnValue(rv).decode()}.")
+    if (rv != TwSuccess): log.error(f"Failed to set {key} voltage: {TwTranslateReturnValue(rv).decode()}.")
 
 
 def set_voltages_ea(values, ion_energy):
@@ -183,7 +183,7 @@ def set_voltages_tof(values):
 def load_setpoints(set_file):
     """Load setpoints from file"""
     with open(set_file, 'r') as f:
-        setpoints = jsonload(f)
+        setpoints = json.load(f)
     return setpoints
 
 
@@ -192,7 +192,7 @@ def save_setpoints(set_file, setpoints, values):
     for key in SETPOINTS:
         setpoints[key] = values[key]
     with open(set_file, 'w') as f:
-        jsondump(setpoints, f)
+        json.dump(setpoints, f)
 
 
 def read_setpoints_from_tps():
@@ -476,13 +476,13 @@ def main():
                 log.info(f'Set values loaded from {os.path.basename(values[event])}')
             window['-LOAD-'].update('')
         elif event in ('-SET_TPS-', '+SEND+', '+SEND2+'):
+            log.info('TPS voltages set.')
             ion_energy = float(values['-ION_ENERGY-'])
             set_voltages_ea(values, ion_energy)
             set_voltages_tof(values)
             for key in V_INPUTS:
                 window[key].update(background_color='#99C794')
             TwUpdateUserData('/EnergyData'.encode(), 2, np.array([values['-ION_ENERGY-'], values['-ESA_ENERGY-']], dtype=np.float64))
-            log.info('TPS voltages set.')
         elif event in ('-READ_FROM_TPS-', '+READ+'):  # Ctrl-r
             tps2setpoint = read_setpoints_from_tps()
             rg_correction = 0.25  # ion energy correction of RG in V/eV
@@ -514,10 +514,10 @@ def main():
             window['-IONEX-'].update(value=round(tps2setpoint['IONEX'] - V_extractor, 2))
             log.info('Updated set values from current TPS setpoints.')
         elif event in ('-ZERO_ALL-', '+ZERO+'):  # Ctrl-z
+            log.info('All voltages set to zero.')
             zero_all()
             for key in V_INPUTS:
                 window[key].update(background_color='#6699CC')
-            log.info('All voltages set to zero.')
         # elif re.search('\+MOUSE WHEEL\+$', event) is not None:
         elif event.endswith('+MOUSE WHEEL+'):
             key = re.split(',', event)[0]
