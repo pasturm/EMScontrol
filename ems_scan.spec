@@ -18,13 +18,15 @@ a = Analysis(['ems_scan.pyw'],
              noarchive=False)
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
+a.datas += [('tw.png','C:\\Users\\pst\\tresorit\\Tofwerk\\Python\\EMS\\tw.png', 'Data'),
+('tw.ico','C:\\Users\\pst\\tresorit\\Tofwerk\\Python\\EMS\\tw.ico', 'Data')]
 exe = EXE(pyz,
           a.scripts,
           a.binaries,
           a.zipfiles,
           a.datas,
           [],
-          name='EMS scan | TOFWERK',
+          name='EMS scan',
           icon='C:\\Users\\pst\\tresorit\\Tofwerk\\Python\\EMS\\tw.ico',
           debug=False,
           bootloader_ignore_signals=False,

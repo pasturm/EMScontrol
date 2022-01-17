@@ -2,9 +2,9 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.3.7'
+__version__ = '0.4.0'
 __author__ = 'Patrick Sturm'
-__copyright__ = 'Copyright 2021, TOFWERK'
+__copyright__ = 'Copyright 2021-2022, TOFWERK'
 
 import numpy as np
 import time
@@ -74,6 +74,12 @@ SETPOINTS = {'-ESA_ENERGY-':0, '-TOF_ENERGY-':0, '-ION_ENERGY-':0, '-POLARITY-':
 
 # exit event to abort energy scanning
 exit_event = threading.Event()
+
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
 
 
 def calculate_EA_voltages(ea_energy, r0 = 0.100, d = 0.0125, polarity = 1):
@@ -278,7 +284,7 @@ def make_window():
         right_click_menu=['', ['&Clear']], background_color=sg.theme_background_color(), 
         text_color=sg.theme_element_text_color(), no_scrollbar=True, expand_x=True)]]
 
-    return sg.Window('EMS scan | TOFWERK', layout, icon='tw.ico', resizable=True, finalize=True, 
+    return sg.Window('EMS scan | TOFWERK', layout, icon=resource_path('tw.ico'), resizable=True, finalize=True, 
         return_keyboard_events=False, enable_close_attempted_event=True)
 
 
@@ -415,7 +421,7 @@ def main():
             break
         elif event == 'About...':
             sg.popup_no_buttons('EMS scan software', 'Version ' + __version__,
-                __copyright__, title = 'About', icon = 'tw.ico', image='tw.png', non_blocking = True)
+                __copyright__, title = 'About', icon = resource_path('tw.ico'), image = resource_path('tw.png'), non_blocking = True)
         elif event == 'Keyboard shortcuts...':
             sg.popup_no_buttons(
                 'Send all:       Enter or Scroll Wheel Click', 
@@ -423,7 +429,7 @@ def main():
                 'Open...:        Ctrl-O',
                 'Save...:        Ctrl-S', 
                 'Zero all:       Ctrl-Z', 
-                title = 'Keyboard shortcuts', icon = 'tw.ico', font = ('Courier', 10), non_blocking = True)
+                title = 'Keyboard shortcuts', icon = resource_path('tw.ico'), font = ('Courier', 10), non_blocking = True)
         elif event == 'Voltage mapping...':
             sg.popup_no_buttons(
                 'TPS_Orifice            = Orifice',
@@ -450,7 +456,7 @@ def main():
                 'TPS_PA                 = PA',
                 'TPS_MCP                = MCP',
                 'V* = (Ion_energy - ESA_energy)*V/eV',
-                title = 'Voltage mapping', line_width = 120, icon = 'tw.ico', 
+                title = 'Voltage mapping', line_width = 120, icon = resource_path('tw.ico'), 
                 font = ('Courier', 10), non_blocking = True)
         elif event == '-START-':
             threading.Thread(target=scanning_thread, args=(window,values,), daemon=True).start()
