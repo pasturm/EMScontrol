@@ -1,8 +1,8 @@
-#! /usr/bin/python3-64
+#! /usr/bin/env python3
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.4.0'
+__version__ = '0.4.1'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021-2022, TOFWERK'
 
@@ -11,6 +11,7 @@ import time
 import sys
 import math
 import logging
+import ctypes
 import threading
 import os
 import json
@@ -24,36 +25,19 @@ from TwTool import *
 # Logger
 log = logging.getLogger(__name__)
 
+# output logging messages to DebugView via OutputDebugString
+OutputDebugString = ctypes.windll.kernel32.OutputDebugStringW
+class DebugViewHandler(logging.Handler):
+    def emit(self, record):
+        OutputDebugString(self.format(record))
+
 
 # TPS RC codes
-tps1rc = {
-'L2': 14,
-'DEFL': 15,
-'DEFLFL': 16,
-'IONEX': 17,
-'L1': 18,
-'REFERENCE': 117,
-'ORIFICE': 2500,
-'INNER_CYL': 2501,
-'OUTER_CYL': 2502,
-'MATSUDA': 2503,
-'DEFL1U': 2504,
-'DEFL1D': 2505,
-'DEFL1L': 2506,
-'DEFL1R': 2507,
-'TOFREF': 202,
-'TOFEXTR1': 201,
-'TOFEXTR2': 200,
-'TOFPULSE': 203,
-'RG': 2,
-'RB': 1,
-'DRIFT': 9,
-'PA': 5,
-'MCP': 6,
-'HVSUPPLY': 602,
-'HVPOS': 603,
-'HVNEG': 604
-}
+tps1rc = {'L2': 14, 'DEFL': 15, 'DEFLFL': 16, 'IONEX': 17, 'L1': 18, 'REFERENCE': 117, 
+    'ORIFICE': 2500, 'INNER_CYL': 2501, 'OUTER_CYL': 2502, 'MATSUDA': 2503, 
+    'DEFL1U': 2504, 'DEFL1D': 2505, 'DEFL1L': 2506, 'DEFL1R': 2507, 'TOFREF': 202,
+    'TOFEXTR1': 201, 'TOFEXTR2': 200, 'TOFPULSE': 203, 'RG': 2, 'RB': 1,
+    'DRIFT': 9, 'PA': 5, 'MCP': 6, 'HVSUPPLY': 602, 'HVPOS': 603,'HVNEG': 604}
 
 
 # Windows element keys that are Voltages and can change background color
@@ -64,12 +48,9 @@ V_INPUTS = {'-ORIFICE-':0, '-LENS1-':0, '-DEFL1U-':0, '-DEFL1D-':0, '-DEFL1L-':0
 
 
 # Window element keys that will be saved to a file
-SETPOINTS = {'-ESA_ENERGY-':0, '-TOF_ENERGY-':0, '-ION_ENERGY-':0, '-POLARITY-':0, 
-    '-ORIFICE-':0, '-LENS1-':0, '-DEFL1U-':0, '-DEFL1D-':0, '-DEFL1L-':0, '-DEFL1R-':0, 
-    '-INNER_CYL-':0, '-OUTER_CYL-':0, '-MATSUDA-':0, '-LENS2-':0, '-DEFL-':0, '-DEFLFL-':0, '-REF-':0,
-    '-START_ENERGY-':0, '-END_ENERGY-':0, '-STEP_SIZE-':0,'-TIME_PER_STEP-':0,
-    '-TOFEXTR1-':0, '-RG-':0, '-RB-':0, '-TOFEXTR2-':0, '-TOFPULSE-':0, '-DRIFT-':0,
-    '-PA-':0, '-MCP-':0, '-HVSUPPLY-':0, '-HVPOS-':0, '-HVNEG-':0, '-IONEX-':0}
+SETPOINTS = {**V_INPUTS, '-ESA_ENERGY-':0, '-TOF_ENERGY-':0, '-ION_ENERGY-':0,
+    '-POLARITY-':0, '-START_ENERGY-':0, '-END_ENERGY-':0, '-STEP_SIZE-':0,
+    '-TIME_PER_STEP-':0, '-HVSUPPLY-':0, '-HVPOS-':0, '-HVNEG-':0}
 
 
 # exit event to abort energy scanning
@@ -384,6 +365,10 @@ def main():
 
     logging.basicConfig(stream=sys.stdout, format='%(asctime)s [%(levelname)s] %(message)s', 
         datefmt='%Y-%m-%d %H:%M:%S', level=logging.DEBUG)
+
+    # "OutputDebugString\DebugView"
+    ods = DebugViewHandler()
+    log.addHandler(ods)
 
     # connect to TPS2
     tps_ip = 'localhost'  # TPS2 host name or IP
