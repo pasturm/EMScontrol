@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.4.1'
+__version__ = '0.4.2'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021-2022, TOFWERK'
 
@@ -101,70 +101,38 @@ def set_voltages_ea(values, ion_energy):
     rg_correction = 0.25  # ion energy correction of RG in V/eV
     V_rg = float(values['-RG-']) + V_tofreference*rg_correction  # -RG- is set value if TOFREF = 0 V (ion energy - tof energy = 0 eV)
 
-    rv = TwTpsSetTargetValue(tps1rc['ORIFICE'], float(values['-ORIFICE-']))
-    tps_error_log(rv, 'ORIFICE')
-    rv = TwTpsSetTargetValue(tps1rc['IONEX'], V_extractor + float(values['-IONEX-']))
-    tps_error_log(rv, 'IONEX')
-    rv = TwTpsSetTargetValue(tps1rc['L1'], V_extractor + float(values['-LENS1-']))
-    tps_error_log(rv, 'L1')
-    rv = TwTpsSetTargetValue(tps1rc['DEFL1U'], V_extractor + float(values['-DEFL1U-']))
-    tps_error_log(rv, 'DEFL1U')
-    rv = TwTpsSetTargetValue(tps1rc['DEFL1D'], V_extractor + float(values['-DEFL1D-']))
-    tps_error_log(rv, 'DEFL1D')
-    rv = TwTpsSetTargetValue(tps1rc['DEFL1R'], V_extractor + float(values['-DEFL1R-']))
-    tps_error_log(rv, 'DEFL1R')
-    rv = TwTpsSetTargetValue(tps1rc['DEFL1L'], V_extractor + float(values['-DEFL1L-']))
-    tps_error_log(rv, 'DEFL1L')
-    rv = TwTpsSetTargetValue(tps1rc['INNER_CYL'], V_extractor + V1 + float(values['-INNER_CYL-']))
-    tps_error_log(rv, 'INNER_CYL')
-    rv = TwTpsSetTargetValue(tps1rc['OUTER_CYL'], V_extractor + V2 + float(values['-OUTER_CYL-']))
-    tps_error_log(rv, 'OUTER_CYL')
-    rv = TwTpsSetTargetValue(tps1rc['MATSUDA'], V_extractor + float(values['-MATSUDA-']))
-    tps_error_log(rv, 'MATSUDA')
-    rv = TwTpsSetTargetValue(tps1rc['REFERENCE'], V_tofreference + V_reference)
-    tps_error_log(rv, 'REFERENCE')
-    rv = TwTpsSetTargetValue(tps1rc['L2'], V_tofreference + V_reference + float(values['-LENS2-']))
-    tps_error_log(rv, 'L2')
-    rv = TwTpsSetTargetValue(tps1rc['DEFL'], V_tofreference + V_reference + float(values['-DEFL-']))
-    tps_error_log(rv, 'DEFL')
-    rv = TwTpsSetTargetValue(tps1rc['DEFLFL'], V_tofreference + V_reference + float(values['-DEFLFL-']))
-    tps_error_log(rv, 'DEFLFL')
-    rv = TwTpsSetTargetValue(tps1rc['TOFREF'], V_tofreference)
-    tps_error_log(rv, 'TOFREF')
-    rv = TwTpsSetTargetValue(tps1rc['TOFEXTR1'], V_tofextractor1)
-    tps_error_log(rv, 'TOFEXTR1')
-    rv = TwTpsSetTargetValue(tps1rc['RG'], V_rg)
-    tps_error_log(rv, 'RG')
-    # Show actual TPS voltages as debug message: Orifice|Extractor|Lens1|Inner|Outer|Matsuda|Reference|Lens2|TOFreference|TOFExtr1|RG
-    # log.debug(f"{values['-ORIFICE-']}|{V_extractor}|{V_extractor + float(values['-LENS1-'])}"
-    #     f"|{V_extractor + V1 + float(values['-INNER_CYL-']):.1f}|{V_extractor + V2 + float(values['-OUTER_CYL-']):.1f}"
-    #     f"|{V_extractor + float(values['-MATSUDA-']):.1f}"
-    #     f"|{V_tofreference + V_reference}|{V_tofreference + V_reference + float(values['-LENS2-'])}"
-    #     f"|{V_tofreference}|{V_tofextractor1}|{V_rg}")
+    tps_error_log(TwTpsSetTargetValue(tps1rc['ORIFICE'], float(values['-ORIFICE-'])), 'ORIFICE')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['IONEX'], V_extractor + float(values['-IONEX-'])), 'IONEX')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['L1'], V_extractor + float(values['-LENS1-'])), 'L1')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['DEFL1U'], V_extractor + float(values['-DEFL1U-'])), 'DEFL1U')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['DEFL1D'], V_extractor + float(values['-DEFL1D-'])), 'DEFL1D')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['DEFL1R'], V_extractor + float(values['-DEFL1R-'])), 'DEFL1R')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['DEFL1L'], V_extractor + float(values['-DEFL1L-'])), 'DEFL1L')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['INNER_CYL'], V_extractor + V1 + float(values['-INNER_CYL-'])), 'INNER_CYL')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['OUTER_CYL'], V_extractor + V2 + float(values['-OUTER_CYL-'])), 'OUTER_CYL')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['MATSUDA'], V_extractor + float(values['-MATSUDA-'])), 'MATSUDA')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['REFERENCE'], V_tofreference + V_reference), 'REFERENCE')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['L2'], V_tofreference + V_reference + float(values['-LENS2-'])), 'L2')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['DEFL'], V_tofreference + V_reference + float(values['-DEFL-'])), 'DEFL')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['DEFLFL'], V_tofreference + V_reference + float(values['-DEFLFL-'])), 'DEFLFL')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['TOFREF'], V_tofreference), 'TOFREF')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['TOFEXTR1'], V_tofextractor1), 'TOFEXTR1')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['RG'], V_rg), 'RG')
 
 
 def set_voltages_tof(values):
     """
     Set all ion_energy-independent (tof) voltages.
     """
-    rv = TwTpsSetTargetValue(tps1rc['RB'], float(values['-RB-']))
-    tps_error_log(rv, 'RB')
-    rv = TwTpsSetTargetValue(tps1rc['TOFPULSE'], float(values['-TOFPULSE-']))
-    tps_error_log(rv, 'TOFPULSE')
-    rv = TwTpsSetTargetValue(tps1rc['TOFEXTR2'], float(values['-TOFEXTR2-']))
-    tps_error_log(rv, 'TOFEXTR2')
-    rv = TwTpsSetTargetValue(tps1rc['DRIFT'], float(values['-DRIFT-']))
-    tps_error_log(rv, 'DRIFT')
-    rv = TwTpsSetTargetValue(tps1rc['PA'], float(values['-PA-']))
-    tps_error_log(rv, 'PA')
-    rv = TwTpsSetTargetValue(tps1rc['MCP'], float(values['-MCP-']))
-    tps_error_log(rv, 'MCP')
-    rv = TwTpsSetTargetValue(tps1rc['HVSUPPLY'], float(values['-HVSUPPLY-']))
-    tps_error_log(rv, 'HVSUPPLY')
-    rv = TwTpsSetTargetValue(tps1rc['HVPOS'], float(values['-HVPOS-']))
-    tps_error_log(rv, 'HVPOS')
-    rv = TwTpsSetTargetValue(tps1rc['HVNEG'], float(values['-HVNEG-']))
-    tps_error_log(rv, 'HVNEG')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['RB'], float(values['-RB-'])), 'RB')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['TOFPULSE'], float(values['-TOFPULSE-'])), 'TOFPULSE')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['TOFEXTR2'], float(values['-TOFEXTR2-'])), 'TOFEXTR2')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['DRIFT'], float(values['-DRIFT-'])), 'DRIFT')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['PA'], float(values['-PA-'])), 'PA')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['MCP'], float(values['-MCP-'])), 'MCP')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['HVSUPPLY'], float(values['-HVSUPPLY-'])), 'HVSUPPLY')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['HVPOS'], float(values['-HVPOS-'])), 'HVPOS')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['HVNEG'], float(values['-HVNEG-'])), 'HVNEG')
 
 
 def load_setpoints(set_file):
