@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.4.2'
+__version__ = '0.4.3'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021-2022, TOFWERK'
 
@@ -225,7 +225,7 @@ def make_window():
         sg.Text('Step size (eV)', size=(15,1)), sg.Input(default_text='0.5', size=(6,1), key='-STEP_SIZE-')],
         [sg.Text('Time per step (s)', size=(15,1)), sg.Input(default_text='2', size=(6,1), key='-TIME_PER_STEP-')],
         [sg.Button('Start', key='-START-'), sg.Button('Cancel', key='-STOP-'),
-        sg.ProgressBar(max_value=100, orientation='h', size=(20, 10), key='-PROGRESS_BAR-', expand_x=True)]]
+        sg.ProgressBar(max_value=100, orientation='h', size=(20, 10), key='-PROGRESS_BAR-', expand_x=True, bar_color=('#FAC761', '#FFFFFF'))]]
         )]]
 
     layout += [[sg.Multiline(size=(50,5), autoscroll=True, 
@@ -294,6 +294,7 @@ def scanning_thread(window, values):
    
     # start energy scan
     log.info('Scanning...')
+    window['-ION_ENERGY-'].update(background_color='#FAC761')
     for i in np.arange(start_energy, end_energy+1e-6, step_size, dtype=float):
         h5logtext = f'{i:.1f} eV'.encode()
         TwAddLogEntry(h5logtext, 0)
@@ -305,6 +306,7 @@ def scanning_thread(window, values):
         if exit_event.wait(timeout=time_per_step): break
            
     log.info('Stopping acquisition.')
+    window['-ION_ENERGY-'].update(background_color='#FFFFFF')
     TwStopAcquisition()
     while TwDaqActive():  # wait until acquisition is stopped
         if exit_event.wait(timeout=1): break
@@ -317,6 +319,7 @@ def scanning_thread(window, values):
     TwUpdateUserData('/EnergyData'.encode(), 2, np.array([values['-ION_ENERGY-'], values['-ESA_ENERGY-']], dtype=np.float64))
     log.info('Energy scan completed.')
     [window[key].update(disabled=value) for key, value in {'-START-': False, '-STOP-': True}.items()]
+    window['-PROGRESS_BAR-'].update_bar(0, 100)
     exit_event.clear()  # clear exit flag
 
 
@@ -416,6 +419,7 @@ def main():
         elif event == '-STOP-':
             exit_event.set()
             log.warning('Stopping energy scan by user request.')
+            window['-ION_ENERGY-'].update(background_color='#FFFFFF')
         elif event == 'Clear':
             window['-LOG_OUTPUT-'].update('')
         elif event == '+SAVE+':  # Ctrl-s
