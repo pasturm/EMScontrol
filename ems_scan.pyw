@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.4.3'
+__version__ = '0.5.0'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021-2022, TOFWERK'
 
@@ -42,9 +42,8 @@ tps1rc = {'L2': 14, 'DEFL': 15, 'DEFLFL': 16, 'IONEX': 17, 'L1': 18, 'REFERENCE'
 
 # Windows element keys that are Voltages and can change background color
 V_INPUTS = {'-ORIFICE-':0, '-LENS1-':0, '-DEFL1U-':0, '-DEFL1D-':0, '-DEFL1L-':0, '-DEFL1R-':0, 
-    '-INNER_CYL-':0, '-OUTER_CYL-':0, '-MATSUDA-':0, '-LENS2-':0, '-DEFL-':0, '-DEFLFL-':0, '-REF-':0,
-    '-TOFEXTR1-':0, '-RG-':0, '-RB-':0, '-TOFEXTR2-':0, '-TOFPULSE-':0, '-DRIFT-':0,
-    '-PA-':0, '-MCP-':0, '-IONEX-':0}
+    '-MATSUDA-':0, '-LENS2-':0, '-DEFL-':0, '-DEFLFL-':0, '-REF-':0, '-TOFEXTR1-':0, '-RG-':0,
+    '-RB-':0, '-TOFEXTR2-':0, '-TOFPULSE-':0, '-DRIFT-':0, '-PA-':0, '-MCP-':0, '-IONEX-':0}
 
 
 # Window element keys that will be saved to a file
@@ -63,7 +62,7 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 
-def calculate_EA_voltages(ea_energy, r0 = 0.100, d = 0.0125, polarity = 1):
+def calculate_ESA_voltages(esa_energy, r0 = 0.100, d = 0.0125, polarity = 1):
     """
     Calculates the cylinder electrode potentials for a given energy.
     
@@ -79,9 +78,31 @@ def calculate_EA_voltages(ea_energy, r0 = 0.100, d = 0.0125, polarity = 1):
     """
     r1 = r0-d  # inner cylinder radius, m
     r2 = r0+d  # outer cylinder radius, m
-    V1 = polarity*ea_energy*2*math.log(r2/r1)*(math.log(r1)-math.log(r0))/(math.log(r2)-math.log(r1))  # inner cylinder voltage, V
-    V2 = polarity*ea_energy*2*math.log(r2/r1) + V1  # outer cylinder voltage, V
+    V1 = polarity*esa_energy*2*math.log(r2/r1)*(math.log(r1)-math.log(r0))/(math.log(r2)-math.log(r1))  # inner cylinder voltage, V
+    V2 = polarity*esa_energy*2*math.log(r2/r1) + V1  # outer cylinder voltage, V
     return V1, V2
+
+
+def calculate_energies_from_ESA_voltages(V_inner, V_outer):
+    """
+    Calculates the ESA energy and staring ion energy from the cylinder electrode potentials.
+    
+    Arguments:
+    V_inner: inner cylinder potential, V
+    V_outer: outer cylinder potential, V
+    
+    Return values:
+    esa_energy, ion_energy : ESA and staring ion energy, eV
+    """
+    r0 = 0.100
+    d = 0.0125
+    r1 = r0-d  # inner cylinder radius, m
+    r2 = r0+d  # outer cylinder radius, m
+    c1 = 2*math.log(r2/r1)
+    c2 = c1*(math.log(r1)-math.log(r0))/(math.log(r2)-math.log(r1))
+    esa_energy = (V_outer-V_inner)/c1
+    ion_energy = (V_inner*(1+(2*c2+c1-2)/c1)+V_outer*(1-(2*c2+c1-2)/c1))/2
+    return esa_energy, ion_energy
 
 
 def tps_error_log(rv, key):
@@ -93,7 +114,7 @@ def set_voltages_ea(values, ion_energy):
     Set all ion_energy-dependent voltages.
     """ 
     # polarity = 1 if (values['-POLARITY-']=='pos') else -1  # Note: does not yet work for neg
-    V1, V2 = calculate_EA_voltages(float(values['-ESA_ENERGY-']), polarity=1)
+    V1, V2 = calculate_ESA_voltages(float(values['-ESA_ENERGY-']), polarity=1)
     V_extractor = ion_energy - float(values['-ESA_ENERGY-'])
     V_reference = float(values['-REF-'])
     V_tofreference = ion_energy - float(values['-TOF_ENERGY-'])  # from LV channel -> with sign
@@ -108,8 +129,8 @@ def set_voltages_ea(values, ion_energy):
     tps_error_log(TwTpsSetTargetValue(tps1rc['DEFL1D'], V_extractor + float(values['-DEFL1D-'])), 'DEFL1D')
     tps_error_log(TwTpsSetTargetValue(tps1rc['DEFL1R'], V_extractor + float(values['-DEFL1R-'])), 'DEFL1R')
     tps_error_log(TwTpsSetTargetValue(tps1rc['DEFL1L'], V_extractor + float(values['-DEFL1L-'])), 'DEFL1L')
-    tps_error_log(TwTpsSetTargetValue(tps1rc['INNER_CYL'], V_extractor + V1 + float(values['-INNER_CYL-'])), 'INNER_CYL')
-    tps_error_log(TwTpsSetTargetValue(tps1rc['OUTER_CYL'], V_extractor + V2 + float(values['-OUTER_CYL-'])), 'OUTER_CYL')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['INNER_CYL'], V_extractor + V1), 'INNER_CYL')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['OUTER_CYL'], V_extractor + V2), 'OUTER_CYL')
     tps_error_log(TwTpsSetTargetValue(tps1rc['MATSUDA'], V_extractor + float(values['-MATSUDA-'])), 'MATSUDA')
     tps_error_log(TwTpsSetTargetValue(tps1rc['REFERENCE'], V_tofreference + V_reference), 'REFERENCE')
     tps_error_log(TwTpsSetTargetValue(tps1rc['L2'], V_tofreference + V_reference + float(values['-LENS2-'])), 'L2')
@@ -177,38 +198,34 @@ def make_window():
     layout = [[sg.Menu(menu_def, key='-MENU-')]]
 
     layout += [[sg.Frame('Energies (eV)', 
-        [[sg.Text('Ion energy', size=(15,1)), sg.Input(default_text='50', size=(6,1), key='-ION_ENERGY-'),
-        sg.Text('ESA energy', size=(15,1)), sg.Input(default_text='100', size=(6,1), key='-ESA_ENERGY-'), 
-        sg.Text('TOF energy', size=(15,1)), sg.Input(default_text='60', size=(6,1), key='-TOF_ENERGY-'),
+        [[sg.Text('Ion energy', size=(15,1)), sg.Input(default_text='50', size=(8,1), key='-ION_ENERGY-'),
+        sg.Text('ESA energy', size=(15,1)), sg.Input(default_text='100', size=(8,1), key='-ESA_ENERGY-'), 
+        sg.Text('TOF energy', size=(15,1)), sg.Input(default_text='60', size=(8,1), key='-TOF_ENERGY-'),
         # sg.Text('Polarity', size=(15,1)), sg.Combo(values=('pos', 'neg'), default_value='pos', readonly=True, key='-POLARITY-')]]
         sg.Combo(visible=False, values=('pos', 'neg'), default_value='pos', readonly=True, key='-POLARITY-')]]
         )]]
 
     layout += [[sg.Frame('Voltages (V)',
-        [[sg.Text('Orifice', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-ORIFICE-'),
-        sg.Text('Matsuda', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-MATSUDA-'),
-        sg.Text('TOF Extractor 1', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-TOFEXTR1-')],
-        [sg.Text('Lens 1', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-LENS1-'),
-        sg.Text('Inner Cylinder', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-INNER_CYL-'),
-        sg.Text('TOF Extractor 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-TOFEXTR2-')],
-        [sg.Text('Deflector 1 up', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL1U-'),
-        sg.Text('Outer Cylinder', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-OUTER_CYL-'),
-        sg.Text('TOF Pulse', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-TOFPULSE-')],
-        [sg.Text('Deflector 1 down', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL1D-'),
-        sg.Text('Lens 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-LENS2-'),
-        sg.Text('RG', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-RG-')],
-        [sg.Text('Deflector 1 left', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL1L-'),
-        sg.Text('Deflector 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL-'),
-        sg.Text('RB', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-RB-')],
-        [sg.Text('Deflector 1 right', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFL1R-'),
-        sg.Text('Deflector Flange 2', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DEFLFL-'),
-        sg.Text('Drift', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-DRIFT-')],
-        [sg.Text('Ion Extractor', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-IONEX-'), 
-        sg.Text('Reference', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-REF-'), 
-        sg.Text('PA', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-PA-')],
-        [sg.Text('', size=(1,1)), 
-        sg.Text('', size=(1,1)), 
-        sg.Text('MCP', size=(57,1)), sg.Input(default_text='0', size=(6,1), key='-MCP-')],
+        [[sg.Text('Orifice', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-ORIFICE-'),
+        sg.Text('Matsuda', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-MATSUDA-'),
+        sg.Text('TOF Pulse', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-TOFPULSE-')],
+        [sg.Text('Lens 1', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-LENS1-'),
+        sg.Text('Lens 2', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-LENS2-'),
+        sg.Text('RG', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-RG-')],
+        [sg.Text('Deflector 1 up', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-DEFL1U-'),
+        sg.Text('Deflector 2', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-DEFL-'),
+        sg.Text('RB', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-RB-')],
+        [sg.Text('Deflector 1 down', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-DEFL1D-'),
+        sg.Text('Deflector Flange 2', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-DEFLFL-'),
+        sg.Text('Drift', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-DRIFT-')],
+        [sg.Text('Deflector 1 left', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-DEFL1L-'),
+        sg.Text('Reference', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-REF-'),
+        sg.Text('PA', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-PA-')],
+        [sg.Text('Deflector 1 right', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-DEFL1R-'),
+        sg.Text('TOF Extractor 1', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-TOFEXTR1-'),
+        sg.Text('MCP', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-MCP-')],
+        [sg.Text('Ion Extractor', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-IONEX-'), 
+        sg.Text('TOF Extractor 2', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-TOFEXTR2-')],
         [sg.Input(visible=False, default_text='1000', key='-HVPOS-'),
         sg.Input(visible=False, default_text='-4000', key='-HVNEG-'),
         sg.Input(visible=False, default_text='1', key='-HVSUPPLY-')]]
@@ -220,10 +237,10 @@ def make_window():
         sg.Button('Zero all', key='-ZERO_ALL-')]]
 
     layout += [[sg.Frame('Scan', 
-        [[sg.Text('Start ion energy (eV)', size=(15,1)), sg.Input(default_text='0', size=(6,1), key='-START_ENERGY-'),
-        sg.Text('End ion energy (eV)', size=(15,1)), sg.Input(default_text='50', size=(6,1), key='-END_ENERGY-'),
-        sg.Text('Step size (eV)', size=(15,1)), sg.Input(default_text='0.5', size=(6,1), key='-STEP_SIZE-')],
-        [sg.Text('Time per step (s)', size=(15,1)), sg.Input(default_text='2', size=(6,1), key='-TIME_PER_STEP-')],
+        [[sg.Text('Start ion energy (eV)', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-START_ENERGY-'),
+        sg.Text('End ion energy (eV)', size=(15,1)), sg.Input(default_text='50', size=(8,1), key='-END_ENERGY-'),
+        sg.Text('Step size (eV)', size=(15,1)), sg.Input(default_text='0.5', size=(8,1), key='-STEP_SIZE-')],
+        [sg.Text('Time per step (s)', size=(15,1)), sg.Input(default_text='2', size=(8,1), key='-TIME_PER_STEP-')],
         [sg.Button('Start', key='-START-'), sg.Button('Cancel', key='-STOP-'),
         sg.ProgressBar(max_value=100, orientation='h', size=(20, 10), key='-PROGRESS_BAR-', expand_x=True, bar_color=('#FAC761', '#FFFFFF'))]]
         )]]
@@ -396,8 +413,8 @@ def main():
                 'TPS_Deflector_1_right  = Deflector_1_right + V*',
                 'TPS_Ion_Extractor      = Ion_Extractor + V*',
                 'TPS_Matsuda            = Matsuda + V*',
-                'TPS_Inner_Cylinder     = Inner_Cylinder - 0.26706*ESA_energy*V/eV + V*',
-                'TPS_Outer_Cylinder     = Outer_Cylinder + 0.23558*ESA_energy*V/eV + V*',
+                'TPS_Inner_Cylinder     = -0.26706*ESA_energy*V/eV + V*',
+                'TPS_Outer_Cylinder     = 0.23558*ESA_energy*V/eV + V*',
                 'TPS_TOF_Reference      = (Ion_energy - TOF_energy)*V/eV',
                 'TPS_Reference          = Reference + TPS_TOF_Reference',
                 'TPS_Lens_2             = Lens_2 + TPS_Reference',
@@ -449,32 +466,32 @@ def main():
         elif event in ('-READ_FROM_TPS-', '+READ+'):  # Ctrl-r
             tps2setpoint = read_setpoints_from_tps()
             rg_correction = 0.25  # ion energy correction of RG in V/eV
-            tof_energy = float(values['-ION_ENERGY-']) - tps2setpoint['TOFREF']
-            V_extractor = float(values['-ION_ENERGY-']) - float(values['-ESA_ENERGY-'])
-            V1, V2 = calculate_EA_voltages(float(values['-ESA_ENERGY-']), polarity=1)
-            window['-MCP-'].update(value=round(tps2setpoint['MCP'], 2))
-            window['-PA-'].update(value=round(tps2setpoint['PA'], 2))
-            window['-DRIFT-'].update(value=round(tps2setpoint['DRIFT'], 2))
-            window['-TOFEXTR2-'].update(value=round(tps2setpoint['TOFEXTR2'], 2))
-            window['-TOFPULSE-'].update(value=round(tps2setpoint['TOFPULSE'], 2))
-            window['-RB-'].update(value=round(tps2setpoint['RB'], 2))
-            window['-RG-'].update(value=round(tps2setpoint['RG'] - tps2setpoint['TOFREF']*rg_correction, 2))
-            window['-ORIFICE-'].update(value=round(tps2setpoint['ORIFICE'], 2))
-            window['-LENS1-'].update(value=round(tps2setpoint['L1'] - V_extractor, 2))
-            window['-DEFL1U-'].update(value=round(tps2setpoint['DEFL1U'] - V_extractor, 2))
-            window['-DEFL1D-'].update(value=round(tps2setpoint['DEFL1D'] - V_extractor, 2))
-            window['-DEFL1R-'].update(value=round(tps2setpoint['DEFL1R'] - V_extractor, 2))
-            window['-DEFL1L-'].update(value=round(tps2setpoint['DEFL1L'] - V_extractor, 2))
-            window['-MATSUDA-'].update(value=round(tps2setpoint['MATSUDA'] - V_extractor, 2))
-            window['-LENS2-'].update(value=round(tps2setpoint['L2'] - tps2setpoint['REFERENCE'], 2))
-            window['-DEFL-'].update(value=round(tps2setpoint['DEFL'] - tps2setpoint['REFERENCE'], 2))
-            window['-DEFLFL-'].update(value=round(tps2setpoint['DEFLFL'] - tps2setpoint['REFERENCE'], 2))
-            window['-REF-'].update(value=round(tps2setpoint['REFERENCE'] + tof_energy - float(values['-ION_ENERGY-']), 2))
-            window['-INNER_CYL-'].update(value=round(tps2setpoint['INNER_CYL'] - V1 - V_extractor, 2))
-            window['-OUTER_CYL-'].update(value=round(tps2setpoint['OUTER_CYL'] - V2 - V_extractor, 2))
-            window['-TOF_ENERGY-'].update(value=round(tof_energy, 2))
-            window['-TOFEXTR1-'].update(value=round(tps2setpoint['TOFEXTR1'] + tof_energy - float(values['-ION_ENERGY-']), 2))
-            window['-IONEX-'].update(value=round(tps2setpoint['IONEX'] - V_extractor, 2))
+            esa_energy, ion_energy = calculate_energies_from_ESA_voltages(tps2setpoint['INNER_CYL'], tps2setpoint['OUTER_CYL'])
+            tof_energy = ion_energy - tps2setpoint['TOFREF']
+            V_extractor = ion_energy - esa_energy
+            window['-ESA_ENERGY-'].update(value=round(esa_energy, 3))
+            window['-ION_ENERGY-'].update(value=round(ion_energy, 3))
+            window['-MCP-'].update(value=round(tps2setpoint['MCP'], 3))
+            window['-PA-'].update(value=round(tps2setpoint['PA'], 3))
+            window['-DRIFT-'].update(value=round(tps2setpoint['DRIFT'], 3))
+            window['-TOFEXTR2-'].update(value=round(tps2setpoint['TOFEXTR2'], 3))
+            window['-TOFPULSE-'].update(value=round(tps2setpoint['TOFPULSE'], 3))
+            window['-RB-'].update(value=round(tps2setpoint['RB'], 3))
+            window['-RG-'].update(value=round(tps2setpoint['RG'] - tps2setpoint['TOFREF']*rg_correction, 3))
+            window['-ORIFICE-'].update(value=round(tps2setpoint['ORIFICE'], 3))
+            window['-LENS1-'].update(value=round(tps2setpoint['L1'] - V_extractor, 3))
+            window['-DEFL1U-'].update(value=round(tps2setpoint['DEFL1U'] - V_extractor, 3))
+            window['-DEFL1D-'].update(value=round(tps2setpoint['DEFL1D'] - V_extractor, 3))
+            window['-DEFL1R-'].update(value=round(tps2setpoint['DEFL1R'] - V_extractor, 3))
+            window['-DEFL1L-'].update(value=round(tps2setpoint['DEFL1L'] - V_extractor, 3))
+            window['-MATSUDA-'].update(value=round(tps2setpoint['MATSUDA'] - V_extractor, 3))
+            window['-LENS2-'].update(value=round(tps2setpoint['L2'] - tps2setpoint['REFERENCE'], 3))
+            window['-DEFL-'].update(value=round(tps2setpoint['DEFL'] - tps2setpoint['REFERENCE'], 3))
+            window['-DEFLFL-'].update(value=round(tps2setpoint['DEFLFL'] - tps2setpoint['REFERENCE'], 3))
+            window['-REF-'].update(value=round(tps2setpoint['REFERENCE'] + tof_energy - ion_energy, 3))
+            window['-TOF_ENERGY-'].update(value=round(tof_energy, 3))
+            window['-TOFEXTR1-'].update(value=round(tps2setpoint['TOFEXTR1'] + tof_energy - ion_energy, 3))
+            window['-IONEX-'].update(value=round(tps2setpoint['IONEX'] - V_extractor, 3))
             log.info('Updated set values from current TPS setpoints.')
         elif event in ('-ZERO_ALL-', '+ZERO+'):  # Ctrl-z
             log.info('All voltages set to zero.')
