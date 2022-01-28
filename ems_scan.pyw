@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.5.0'
+__version__ = '0.5.1'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021-2022, TOFWERK'
 
@@ -37,7 +37,7 @@ tps1rc = {'L2': 14, 'DEFL': 15, 'DEFLFL': 16, 'IONEX': 17, 'L1': 18, 'REFERENCE'
     'ORIFICE': 2500, 'INNER_CYL': 2501, 'OUTER_CYL': 2502, 'MATSUDA': 2503, 
     'DEFL1U': 2504, 'DEFL1D': 2505, 'DEFL1L': 2506, 'DEFL1R': 2507, 'TOFREF': 202,
     'TOFEXTR1': 201, 'TOFEXTR2': 200, 'TOFPULSE': 203, 'RG': 2, 'RB': 1,
-    'DRIFT': 9, 'PA': 5, 'MCP': 6, 'HVSUPPLY': 602, 'HVPOS': 603,'HVNEG': 604}
+    'DRIFT': 9, 'PA': 5, 'MCP': 6, 'HVSUPPLY': 602, 'HVPOS': 603, 'HVNEG': 604}
 
 
 # Windows element keys that are Voltages and can change background color
@@ -48,8 +48,8 @@ V_INPUTS = {'-ORIFICE-':0, '-LENS1-':0, '-DEFL1U-':0, '-DEFL1D-':0, '-DEFL1L-':0
 
 # Window element keys that will be saved to a file
 SETPOINTS = {**V_INPUTS, '-ESA_ENERGY-':0, '-TOF_ENERGY-':0, '-ION_ENERGY-':0,
-    '-POLARITY-':0, '-START_ENERGY-':0, '-END_ENERGY-':0, '-STEP_SIZE-':0,
-    '-TIME_PER_STEP-':0, '-HVSUPPLY-':0, '-HVPOS-':0, '-HVNEG-':0}
+    '-START_ENERGY-':0, '-END_ENERGY-':0, '-STEP_SIZE-':0, '-TIME_PER_STEP-':0, 
+    '-HVSUPPLY-':0, '-HVPOS-':0, '-HVNEG-':0}
 
 
 # exit event to abort energy scanning
@@ -62,7 +62,18 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 
-def calculate_ESA_voltages(esa_energy, r0 = 0.100, d = 0.0125, polarity = 1):
+def is_all_numeric(values):
+    """Check if all input strings are numeric"""
+    for key in SETPOINTS:
+        try:
+            float(values[key])
+        except ValueError:
+            log.error((f"{key} string cannot be converted to numeric value."))
+            return False
+    return True
+
+
+def calculate_ESA_voltages(esa_energy, r0 = 0.100, d = 0.0125):
     """
     Calculates the cylinder electrode potentials for a given energy.
     
@@ -78,8 +89,8 @@ def calculate_ESA_voltages(esa_energy, r0 = 0.100, d = 0.0125, polarity = 1):
     """
     r1 = r0-d  # inner cylinder radius, m
     r2 = r0+d  # outer cylinder radius, m
-    V1 = polarity*esa_energy*2*math.log(r2/r1)*(math.log(r1)-math.log(r0))/(math.log(r2)-math.log(r1))  # inner cylinder voltage, V
-    V2 = polarity*esa_energy*2*math.log(r2/r1) + V1  # outer cylinder voltage, V
+    V1 = esa_energy*2*math.log(r2/r1)*(math.log(r1)-math.log(r0))/(math.log(r2)-math.log(r1))  # inner cylinder voltage, V
+    V2 = esa_energy*2*math.log(r2/r1) + V1  # outer cylinder voltage, V
     return V1, V2
 
 
@@ -113,8 +124,7 @@ def set_voltages_ea(values, ion_energy):
     """
     Set all ion_energy-dependent voltages.
     """ 
-    # polarity = 1 if (values['-POLARITY-']=='pos') else -1  # Note: does not yet work for neg
-    V1, V2 = calculate_ESA_voltages(float(values['-ESA_ENERGY-']), polarity=1)
+    V1, V2 = calculate_ESA_voltages(float(values['-ESA_ENERGY-']))
     V_extractor = ion_energy - float(values['-ESA_ENERGY-'])
     V_reference = float(values['-REF-'])
     V_tofreference = ion_energy - float(values['-TOF_ENERGY-'])  # from LV channel -> with sign
@@ -200,9 +210,7 @@ def make_window():
     layout += [[sg.Frame('Energies (eV)', 
         [[sg.Text('Ion energy', size=(15,1)), sg.Input(default_text='50', size=(8,1), key='-ION_ENERGY-'),
         sg.Text('ESA energy', size=(15,1)), sg.Input(default_text='100', size=(8,1), key='-ESA_ENERGY-'), 
-        sg.Text('TOF energy', size=(15,1)), sg.Input(default_text='60', size=(8,1), key='-TOF_ENERGY-'),
-        # sg.Text('Polarity', size=(15,1)), sg.Combo(values=('pos', 'neg'), default_value='pos', readonly=True, key='-POLARITY-')]]
-        sg.Combo(visible=False, values=('pos', 'neg'), default_value='pos', readonly=True, key='-POLARITY-')]]
+        sg.Text('TOF energy', size=(15,1)), sg.Input(default_text='60', size=(8,1), key='-TOF_ENERGY-')]]
         )]]
 
     layout += [[sg.Frame('Voltages (V)',
@@ -429,10 +437,11 @@ def main():
                 'TPS_PA                 = PA',
                 'TPS_MCP                = MCP',
                 'V* = (Ion_energy - ESA_energy)*V/eV',
-                title = 'Voltage mapping', line_width = 120, icon = resource_path('tw.ico'), 
+                title = 'Voltage mapping', icon = resource_path('tw.ico'), 
                 font = ('Courier', 10), non_blocking = True)
         elif event == '-START-':
-            threading.Thread(target=scanning_thread, args=(window,values,), daemon=True).start()
+            if is_all_numeric(values):
+                threading.Thread(target=scanning_thread, args=(window,values,), daemon=True).start()
         elif event == '-STOP-':
             exit_event.set()
             log.warning('Stopping energy scan by user request.')
@@ -456,13 +465,14 @@ def main():
                 log.info(f'Set values loaded from {os.path.basename(values[event])}')
             window['-LOAD-'].update('')
         elif event in ('-SET_TPS-', '+SEND+', '+SEND2+'):
-            log.info('TPS voltages set.')
-            ion_energy = float(values['-ION_ENERGY-'])
-            set_voltages_ea(values, ion_energy)
-            set_voltages_tof(values)
-            for key in V_INPUTS:
-                window[key].update(background_color='#99C794')
-            TwUpdateUserData('/EnergyData'.encode(), 2, np.array([values['-ION_ENERGY-'], values['-ESA_ENERGY-']], dtype=np.float64))
+            if is_all_numeric(values):
+                log.info('TPS voltages set.')
+                ion_energy = float(values['-ION_ENERGY-'])
+                set_voltages_ea(values, ion_energy)
+                set_voltages_tof(values)
+                for key in V_INPUTS:
+                    window[key].update(background_color='#99C794')
+                TwUpdateUserData('/EnergyData'.encode(), 2, np.array([values['-ION_ENERGY-'], values['-ESA_ENERGY-']], dtype=np.float64))
         elif event in ('-READ_FROM_TPS-', '+READ+'):  # Ctrl-r
             tps2setpoint = read_setpoints_from_tps()
             rg_correction = 0.25  # ion energy correction of RG in V/eV
