@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.5.1'
+__version__ = '0.6.0'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021-2022, TOFWERK'
 
@@ -40,16 +40,16 @@ tps1rc = {'L2': 14, 'DEFL': 15, 'DEFLFL': 16, 'IONEX': 17, 'L1': 18, 'REFERENCE'
     'DRIFT': 9, 'PA': 5, 'MCP': 6, 'HVSUPPLY': 602, 'HVPOS': 603, 'HVNEG': 604}
 
 
-# Windows element keys that are Voltages and can change background color
+# Windows element keys that can change background color
 V_INPUTS = {'-ORIFICE-':0, '-LENS1-':0, '-DEFL1U-':0, '-DEFL1D-':0, '-DEFL1L-':0, '-DEFL1R-':0, 
     '-MATSUDA-':0, '-LENS2-':0, '-DEFL-':0, '-DEFLFL-':0, '-REF-':0, '-TOFEXTR1-':0, '-RG-':0,
-    '-RB-':0, '-TOFEXTR2-':0, '-TOFPULSE-':0, '-DRIFT-':0, '-PA-':0, '-MCP-':0, '-IONEX-':0}
+    '-RB-':0, '-TOFEXTR2-':0, '-TOFPULSE-':0, '-DRIFT-':0, '-PA-':0, '-MCP-':0, '-IONEX-':0,
+    '-ESA_ENERGY-':0, '-TOF_ENERGY-':0, '-ION_ENERGY-':0}
 
 
 # Window element keys that will be saved to a file
-SETPOINTS = {**V_INPUTS, '-ESA_ENERGY-':0, '-TOF_ENERGY-':0, '-ION_ENERGY-':0,
-    '-START_ENERGY-':0, '-END_ENERGY-':0, '-STEP_SIZE-':0, '-TIME_PER_STEP-':0, 
-    '-HVSUPPLY-':0, '-HVPOS-':0, '-HVNEG-':0}
+SETPOINTS = {**V_INPUTS, '-START_ENERGY-':0, '-END_ENERGY-':0, '-STEP_SIZE-':0, 
+    '-TIME_PER_STEP-':0, '-HVSUPPLY-':0, '-HVPOS-':0, '-HVNEG-':0}
 
 
 # exit event to abort energy scanning
@@ -134,14 +134,14 @@ def set_voltages_ea(values, ion_energy):
 
     tps_error_log(TwTpsSetTargetValue(tps1rc['ORIFICE'], float(values['-ORIFICE-'])), 'ORIFICE')
     tps_error_log(TwTpsSetTargetValue(tps1rc['IONEX'], V_extractor + float(values['-IONEX-'])), 'IONEX')
-    tps_error_log(TwTpsSetTargetValue(tps1rc['L1'], V_extractor + float(values['-LENS1-'])), 'L1')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['L1'], V_extractor + float(values['-LENS1-']) + 0.9*(float(values['-ESA_ENERGY-'])-100)), 'L1')
     tps_error_log(TwTpsSetTargetValue(tps1rc['DEFL1U'], V_extractor + float(values['-DEFL1U-'])), 'DEFL1U')
     tps_error_log(TwTpsSetTargetValue(tps1rc['DEFL1D'], V_extractor + float(values['-DEFL1D-'])), 'DEFL1D')
     tps_error_log(TwTpsSetTargetValue(tps1rc['DEFL1R'], V_extractor + float(values['-DEFL1R-'])), 'DEFL1R')
     tps_error_log(TwTpsSetTargetValue(tps1rc['DEFL1L'], V_extractor + float(values['-DEFL1L-'])), 'DEFL1L')
     tps_error_log(TwTpsSetTargetValue(tps1rc['INNER_CYL'], V_extractor + V1), 'INNER_CYL')
     tps_error_log(TwTpsSetTargetValue(tps1rc['OUTER_CYL'], V_extractor + V2), 'OUTER_CYL')
-    tps_error_log(TwTpsSetTargetValue(tps1rc['MATSUDA'], V_extractor + float(values['-MATSUDA-'])), 'MATSUDA')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['MATSUDA'], V_extractor + float(values['-MATSUDA-']) + 0.25*(float(values['-ESA_ENERGY-'])-100)), 'MATSUDA')
     tps_error_log(TwTpsSetTargetValue(tps1rc['REFERENCE'], V_tofreference + V_reference), 'REFERENCE')
     tps_error_log(TwTpsSetTargetValue(tps1rc['L2'], V_tofreference + V_reference + float(values['-LENS2-'])), 'L2')
     tps_error_log(TwTpsSetTargetValue(tps1rc['DEFL'], V_tofreference + V_reference + float(values['-DEFL-'])), 'DEFL')
@@ -312,10 +312,10 @@ def scanning_thread(window, values):
     while not TwDaqActive():  # wait until acquisition is started
         if exit_event.wait(timeout=1): break
 
-    TwAddAttributeDouble('/EnergyData'.encode(), 'Start energy (eV)'.encode(), start_energy)
-    TwAddAttributeDouble('/EnergyData'.encode(), 'End energy (eV)'.encode(), end_energy)
-    TwAddAttributeDouble('/EnergyData'.encode(), 'Step size (eV)'.encode(), step_size)
-    TwAddAttributeDouble('/EnergyData'.encode(), 'Time_per_step (s)'.encode(), time_per_step)
+    TwAddAttributeDouble('/EnergyData'.encode(), 'StartEnergy'.encode(), start_energy)
+    TwAddAttributeDouble('/EnergyData'.encode(), 'EndEnergy'.encode(), end_energy)
+    TwAddAttributeDouble('/EnergyData'.encode(), 'StepSize'.encode(), step_size)
+    TwAddAttributeDouble('/EnergyData'.encode(), 'TimePerStep'.encode(), time_per_step)
    
     # start energy scan
     log.info('Scanning...')
@@ -414,13 +414,13 @@ def main():
         elif event == 'Voltage mapping...':
             sg.popup_no_buttons(
                 'TPS_Orifice            = Orifice',
-                'TPS_Lens_1             = Lens_1 + V*',
+                'TPS_Lens_1             = Lens_1 + V* + 0.9*(ESA_energy*V/eV - 100 V)',
                 'TPS_Deflector_1_up     = Deflector_1_up + V*',
                 'TPS_Deflector_1_down   = Deflector_1_down + V*',
                 'TPS_Deflector_1_left   = Deflector_1_left + V*',
                 'TPS_Deflector_1_right  = Deflector_1_right + V*',
                 'TPS_Ion_Extractor      = Ion_Extractor + V*',
-                'TPS_Matsuda            = Matsuda + V*',
+                'TPS_Matsuda            = Matsuda + V* + 0.25*(ESA_energy*V/eV - 100 V)',
                 'TPS_Inner_Cylinder     = -0.26706*ESA_energy*V/eV + V*',
                 'TPS_Outer_Cylinder     = 0.23558*ESA_energy*V/eV + V*',
                 'TPS_TOF_Reference      = (Ion_energy - TOF_energy)*V/eV',
@@ -438,7 +438,7 @@ def main():
                 'TPS_MCP                = MCP',
                 'V* = (Ion_energy - ESA_energy)*V/eV',
                 title = 'Voltage mapping', icon = resource_path('tw.ico'), 
-                font = ('Courier', 10), non_blocking = True)
+                font = ('Courier', 10), non_blocking = True, line_width = 100)
         elif event == '-START-':
             if is_all_numeric(values):
                 threading.Thread(target=scanning_thread, args=(window,values,), daemon=True).start()
@@ -489,12 +489,12 @@ def main():
             window['-RB-'].update(value=round(tps2setpoint['RB'], 3))
             window['-RG-'].update(value=round(tps2setpoint['RG'] - tps2setpoint['TOFREF']*rg_correction, 3))
             window['-ORIFICE-'].update(value=round(tps2setpoint['ORIFICE'], 3))
-            window['-LENS1-'].update(value=round(tps2setpoint['L1'] - V_extractor, 3))
+            window['-LENS1-'].update(value=round(tps2setpoint['L1'] - V_extractor - 0.9*(esa_energy + 100), 3))
             window['-DEFL1U-'].update(value=round(tps2setpoint['DEFL1U'] - V_extractor, 3))
             window['-DEFL1D-'].update(value=round(tps2setpoint['DEFL1D'] - V_extractor, 3))
             window['-DEFL1R-'].update(value=round(tps2setpoint['DEFL1R'] - V_extractor, 3))
             window['-DEFL1L-'].update(value=round(tps2setpoint['DEFL1L'] - V_extractor, 3))
-            window['-MATSUDA-'].update(value=round(tps2setpoint['MATSUDA'] - V_extractor, 3))
+            window['-MATSUDA-'].update(value=round(tps2setpoint['MATSUDA'] - V_extractor - 0.25*(esa_energy + 100), 3))
             window['-LENS2-'].update(value=round(tps2setpoint['L2'] - tps2setpoint['REFERENCE'], 3))
             window['-DEFL-'].update(value=round(tps2setpoint['DEFL'] - tps2setpoint['REFERENCE'], 3))
             window['-DEFLFL-'].update(value=round(tps2setpoint['DEFLFL'] - tps2setpoint['REFERENCE'], 3))
@@ -511,7 +511,7 @@ def main():
         # elif re.search('\+MOUSE WHEEL\+$', event) is not None:
         elif event.endswith('+MOUSE WHEEL+'):
             key = re.split(',', event)[0]
-            if key in ('-INNER_CYL-', '-OUTER_CYL-', '-STEP_SIZE-'):
+            if key in ('-ION_ENERGY-', '-STEP_SIZE-'):
                 scroll_stepsize = 0.1
             else:
                 scroll_stepsize = 1
