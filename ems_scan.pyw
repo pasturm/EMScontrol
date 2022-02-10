@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.6.2'
+__version__ = '0.6.3'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021-2022, TOFWERK'
 
@@ -479,8 +479,8 @@ def main():
             esa_energy, ion_energy = calculate_energies_from_ESA_voltages(tps2setpoint['INNER_CYL'], tps2setpoint['OUTER_CYL'])
             tof_energy = ion_energy - tps2setpoint['TOFREF']
             V_extractor = ion_energy - esa_energy
-            window['-ESA_ENERGY-'].update(value=round(esa_energy, 3))
-            window['-ION_ENERGY-'].update(value=round(ion_energy, 3))
+            window['-ESA_ENERGY-'].update(value=round(esa_energy, 2))
+            window['-ION_ENERGY-'].update(value=round(ion_energy, 2))
             window['-MCP-'].update(value=round(tps2setpoint['MCP'], 3))
             window['-PA-'].update(value=round(tps2setpoint['PA'], 3))
             window['-DRIFT-'].update(value=round(tps2setpoint['DRIFT'], 3))
@@ -489,17 +489,17 @@ def main():
             window['-RB-'].update(value=round(tps2setpoint['RB'], 3))
             window['-RG-'].update(value=round(tps2setpoint['RG'] - tps2setpoint['TOFREF']*rg_correction, 3))
             window['-ORIFICE-'].update(value=round(tps2setpoint['ORIFICE'], 3))
-            window['-LENS1-'].update(value=round(tps2setpoint['L1'] - V_extractor - 0.9*(esa_energy - 100), 3))
+            window['-LENS1-'].update(value=round(tps2setpoint['L1'] - V_extractor - 0.9*(esa_energy - 100), 2))
             window['-DEFL1U-'].update(value=round(tps2setpoint['DEFL1U'] - V_extractor, 3))
             window['-DEFL1D-'].update(value=round(tps2setpoint['DEFL1D'] - V_extractor, 3))
             window['-DEFL1R-'].update(value=round(tps2setpoint['DEFL1R'] - V_extractor, 3))
             window['-DEFL1L-'].update(value=round(tps2setpoint['DEFL1L'] - V_extractor, 3))
-            window['-MATSUDA-'].update(value=round(tps2setpoint['MATSUDA'] - V_extractor - 0.25*(esa_energy - 100), 3))
+            window['-MATSUDA-'].update(value=round(tps2setpoint['MATSUDA'] - V_extractor - 0.25*(esa_energy - 100), 2))
             window['-LENS2-'].update(value=round(tps2setpoint['L2'] - tps2setpoint['REFERENCE'], 3))
             window['-DEFL-'].update(value=round(tps2setpoint['DEFL'] - tps2setpoint['REFERENCE'], 3))
             window['-DEFLFL-'].update(value=round(tps2setpoint['DEFLFL'] - tps2setpoint['REFERENCE'], 3))
             window['-REF-'].update(value=round(tps2setpoint['REFERENCE'] + tof_energy - ion_energy, 3))
-            window['-TOF_ENERGY-'].update(value=round(tof_energy, 3))
+            window['-TOF_ENERGY-'].update(value=round(tof_energy, 2))
             window['-TOFEXTR1-'].update(value=round(tps2setpoint['TOFEXTR1'] + tof_energy - ion_energy, 3))
             window['-IONEX-'].update(value=round(tps2setpoint['IONEX'] - V_extractor, 3))
             log.info('Updated set values from current TPS setpoints.')
