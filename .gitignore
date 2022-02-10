@@ -9,3 +9,4 @@ __pycache__/
 debug/
 currentSetpoints.tps
 setpoints/
+versionfile.txt

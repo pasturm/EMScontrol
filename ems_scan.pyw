@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.6.0'
+__version__ = '0.6.2'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021-2022, TOFWERK'
 
@@ -319,7 +319,7 @@ def scanning_thread(window, values):
    
     # start energy scan
     log.info('Scanning...')
-    window['-ION_ENERGY-'].update(background_color='#FAC761')
+    window['-ION_ENERGY-'].update(background_color='#FAC761')  # orange
     for i in np.arange(start_energy, end_energy+1e-6, step_size, dtype=float):
         h5logtext = f'{i:.1f} eV'.encode()
         TwAddLogEntry(h5logtext, 0)
@@ -331,7 +331,7 @@ def scanning_thread(window, values):
         if exit_event.wait(timeout=time_per_step): break
            
     log.info('Stopping acquisition.')
-    window['-ION_ENERGY-'].update(background_color='#FFFFFF')
+    window['-ION_ENERGY-'].update(background_color='#99C794')  # back to green
     TwStopAcquisition()
     while TwDaqActive():  # wait until acquisition is stopped
         if exit_event.wait(timeout=1): break
@@ -489,12 +489,12 @@ def main():
             window['-RB-'].update(value=round(tps2setpoint['RB'], 3))
             window['-RG-'].update(value=round(tps2setpoint['RG'] - tps2setpoint['TOFREF']*rg_correction, 3))
             window['-ORIFICE-'].update(value=round(tps2setpoint['ORIFICE'], 3))
-            window['-LENS1-'].update(value=round(tps2setpoint['L1'] - V_extractor - 0.9*(esa_energy + 100), 3))
+            window['-LENS1-'].update(value=round(tps2setpoint['L1'] - V_extractor - 0.9*(esa_energy - 100), 3))
             window['-DEFL1U-'].update(value=round(tps2setpoint['DEFL1U'] - V_extractor, 3))
             window['-DEFL1D-'].update(value=round(tps2setpoint['DEFL1D'] - V_extractor, 3))
             window['-DEFL1R-'].update(value=round(tps2setpoint['DEFL1R'] - V_extractor, 3))
             window['-DEFL1L-'].update(value=round(tps2setpoint['DEFL1L'] - V_extractor, 3))
-            window['-MATSUDA-'].update(value=round(tps2setpoint['MATSUDA'] - V_extractor - 0.25*(esa_energy + 100), 3))
+            window['-MATSUDA-'].update(value=round(tps2setpoint['MATSUDA'] - V_extractor - 0.25*(esa_energy - 100), 3))
             window['-LENS2-'].update(value=round(tps2setpoint['L2'] - tps2setpoint['REFERENCE'], 3))
             window['-DEFL-'].update(value=round(tps2setpoint['DEFL'] - tps2setpoint['REFERENCE'], 3))
             window['-DEFLFL-'].update(value=round(tps2setpoint['DEFLFL'] - tps2setpoint['REFERENCE'], 3))
