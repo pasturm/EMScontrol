@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.6.3'
+__version__ = '0.6.4'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021-2022, TOFWERK'
 
@@ -393,7 +393,8 @@ def main():
     bind_mouse_wheel(window)
 
     # Store Ion and ESA energy as a registered data source
-    TwRegisterUserDataBufPy('/EnergyData', ['Ion energy (eV)', 'ESA energy (eV)'], 0)
+    rv = TwRegisterUserDataBufPy('/EnergyData', ['Ion energy (eV)', 'ESA energy (eV)'], 0)
+    if (rv != TwSuccess): log.error(f"Failed to register data source '/EnergyData': {TwTranslateReturnValue(rv).decode()}.")
 
     # Event Loop 
     while True:
