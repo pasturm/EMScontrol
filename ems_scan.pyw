@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.6.4'
+__version__ = '0.6.5'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021-2022, TOFWERK'
 
@@ -246,9 +246,9 @@ def make_window():
 
     layout += [[sg.Frame('Scan', 
         [[sg.Text('Start ion energy (eV)', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-START_ENERGY-'),
-        sg.Text('End ion energy (eV)', size=(15,1)), sg.Input(default_text='50', size=(8,1), key='-END_ENERGY-'),
+        sg.Text('End ion energy (eV)', size=(15,1)), sg.Input(default_text='10', size=(8,1), key='-END_ENERGY-'),
         sg.Text('Step size (eV)', size=(15,1)), sg.Input(default_text='0.5', size=(8,1), key='-STEP_SIZE-')],
-        [sg.Text('Time per step (s)', size=(15,1)), sg.Input(default_text='2', size=(8,1), key='-TIME_PER_STEP-')],
+        [sg.Text('Time per step (s)', size=(15,1)), sg.Input(default_text='3', size=(8,1), key='-TIME_PER_STEP-')],
         [sg.Button('Start', key='-START-'), sg.Button('Cancel', key='-STOP-'),
         sg.ProgressBar(max_value=100, orientation='h', size=(20, 10), key='-PROGRESS_BAR-', expand_x=True, bar_color=('#FAC761', '#FFFFFF'))]]
         )]]
@@ -276,22 +276,20 @@ def scanning_thread(window, values):
 
     for key, state in {'-START-': True, '-STOP-': False}.items(): window[key].update(disabled=state)
 
-    log.info('Energy scan started.')
-
     progress = 0
-
     start_energy = float(values['-START_ENERGY-'])  # start energy, eV
     end_energy = float(values['-END_ENERGY-'])  # end energy, eV
     step_size = float(values['-STEP_SIZE-'])  # energy step stize, eV
+    time_per_step = float(values['-TIME_PER_STEP-'])  # time per energy step, s
     if step_size == 0:
         log.error('Step size must not be 0 eV.')
         [window[key].update(disabled=value) for key, value in {'-START-': False, '-STOP-': True}.items()]
         return
-    time_per_step = float(values['-TIME_PER_STEP-'])  # time per energy step, s
     if time_per_step <= 0:
         log.error('Time per step must be larger than 0 s.')
         [window[key].update(disabled=value) for key, value in {'-START-': False, '-STOP-': True}.items()]
         return
+    log.info('Energy scan started.')
 
     TwTpsSaveSetFile('TwTpsTempSetFile'.encode())
     save_setpoints('./currentSetpoints.tps'.encode(), SETPOINTS, values)
@@ -305,8 +303,12 @@ def scanning_thread(window, values):
         TwStopAcquisition()
         while TwDaqActive():  # wait until acquisition is stopped
             if exit_event.wait(timeout=1): break
+
     TwSaveIniFile(''.encode())
     TwSetDaqParameter('DataFileName'.encode(), 'EMSscan_<year>-<month>-<day>_<hour>h<minute>m<second>s.h5'.encode())
+
+    exit_event.wait(timeout=2)  # initial delay, to make sure all voltages are set.
+
     TwStartAcquisition()
     log.info('Starting TofDaq acquisition.')
     while not TwDaqActive():  # wait until acquisition is started
@@ -316,12 +318,14 @@ def scanning_thread(window, values):
     TwAddAttributeDouble('/EnergyData'.encode(), 'EndEnergy'.encode(), end_energy)
     TwAddAttributeDouble('/EnergyData'.encode(), 'StepSize'.encode(), step_size)
     TwAddAttributeDouble('/EnergyData'.encode(), 'TimePerStep'.encode(), time_per_step)
-   
+
+    exit_event.wait(timeout=1)  # additional delay, to make sure TofDaq is ready.
+
     # start energy scan
-    log.info('Scanning...')
     window['-ION_ENERGY-'].update(background_color='#FAC761')  # orange
-    for i in np.arange(start_energy, end_energy+1e-6, step_size, dtype=float):
-        h5logtext = f'{i:.1f} eV'.encode()
+    for i in step_size*np.arange(start_energy/step_size, (end_energy+1e-6)/step_size):
+        log.info(f'Scanning step {i:g} eV.')
+        h5logtext = f'{i:g} eV'.encode()
         TwAddLogEntry(h5logtext, 0)
         set_voltages_ea(values, i)
         window['-ION_ENERGY-'].update(value=round(i, 2))
@@ -346,7 +350,6 @@ def scanning_thread(window, values):
     [window[key].update(disabled=value) for key, value in {'-START-': False, '-STOP-': True}.items()]
     window['-PROGRESS_BAR-'].update_bar(0, 100)
     exit_event.clear()  # clear exit flag
-
 
 def main():
     window = make_window()
