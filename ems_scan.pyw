@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.6.5'
+__version__ = '0.6.6'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021-2022, TOFWERK'
 
@@ -21,6 +21,10 @@ import PySimpleGUI as sg
 from TofDaq import *
 from TwTool import *
 
+
+# developer mode for offline testing
+devmode = False  
+# devmode = True  
 
 # Logger
 log = logging.getLogger(__name__)
@@ -68,7 +72,7 @@ def is_all_numeric(values):
         try:
             float(values[key])
         except ValueError:
-            log.error((f"{key} string cannot be converted to numeric value."))
+            log.error((f'{key} string cannot be converted to numeric value.'))
             return False
     return True
 
@@ -117,7 +121,7 @@ def calculate_energies_from_ESA_voltages(V_inner, V_outer):
 
 
 def tps_error_log(rv, key):
-    if (rv != TwSuccess): log.error(f"Failed to set {key} voltage: {TwTranslateReturnValue(rv).decode()}.")
+    if (rv != TwSuccess and not devmode): log.error(f'Failed to set {key} voltage: {TwTranslateReturnValue(rv).decode()}.')
 
 
 def set_voltages_ea(values, ion_energy):
@@ -187,6 +191,8 @@ def read_setpoints_from_tps():
     value = np.zeros(1, dtype=np.float64)
     for key in tps1rc:
         rv = TwTpsGetTargetValue(tps1rc[key], value)
+        if (rv != TwSuccess and not devmode): 
+            log.error(f'Failed to read {key} voltage: {TwTranslateReturnValue(rv).decode()}.')
         tps2setpoint[key] = value[0]
     return tps2setpoint
 
@@ -203,7 +209,6 @@ def make_window():
     sg.SetOptions(text_justification='right')
     # sg.theme('SystemDefaultForReal')
 
-    # menu_def = [['&Settings', ['&TPS IP address']], ['&Help', ['&About']]]
     menu_def = [['&Help', ['&Keyboard shortcuts...', '&Voltage mapping...', '&About...']]]
     layout = [[sg.Menu(menu_def, key='-MENU-')]]
 
@@ -270,7 +275,7 @@ def bind_mouse_wheel(window):
 
 def scanning_thread(window, values):
     """Energy scanning"""
-    if not TwTofDaqRunning():
+    if (not TwTofDaqRunning() and not devmode):
         log.error('TofDaqRec not running.')
         return
 
@@ -311,7 +316,7 @@ def scanning_thread(window, values):
 
     TwStartAcquisition()
     log.info('Starting TofDaq acquisition.')
-    while not TwDaqActive():  # wait until acquisition is started
+    while (not TwDaqActive() and not devmode):  # wait until acquisition is started
         if exit_event.wait(timeout=1): break
 
     TwAddAttributeDouble('/EnergyData'.encode(), 'StartEnergy'.encode(), start_energy)
@@ -323,7 +328,7 @@ def scanning_thread(window, values):
 
     # start energy scan
     window['-ION_ENERGY-'].update(background_color='#FAC761')  # orange
-    for i in step_size*np.arange(start_energy/step_size, (end_energy+1e-6)/step_size):
+    for i in step_size*np.arange(start_energy/step_size, end_energy/step_size+1e-6):
         log.info(f'Scanning step {i:g} eV.')
         h5logtext = f'{i:g} eV'.encode()
         TwAddLogEntry(h5logtext, 0)
@@ -337,7 +342,7 @@ def scanning_thread(window, values):
     log.info('Stopping acquisition.')
     window['-ION_ENERGY-'].update(background_color='#99C794')  # back to green
     TwStopAcquisition()
-    while TwDaqActive():  # wait until acquisition is stopped
+    while (TwDaqActive() and not devmode):  # wait until acquisition is stopped
         if exit_event.wait(timeout=1): break
     TwLoadIniFile(''.encode())
     TwTpsLoadSetFile('TwTpsTempSetFile'.encode())
@@ -364,8 +369,6 @@ def main():
 
     logging.basicConfig(stream=sys.stdout, format='%(asctime)s [%(levelname)s] %(message)s', 
         datefmt='%Y-%m-%d %H:%M:%S', level=logging.DEBUG)
-
-    # "OutputDebugString\DebugView"
     ods = DebugViewHandler()
     log.addHandler(ods)
 
@@ -379,7 +382,10 @@ def main():
             log.info(f'TPS2 connected via {tps_ip}.')
             # TwTpsSaveSetFile('TwTpsTempSetFile'.encode())
     else:
-        log.error('TofDaqRec not running.')
+        if devmode:
+            log.warning('Developer mode.')
+        else:
+            log.error('TofDaqRec not running.')
 
     for key, state in {'-START-': False, '-STOP-': True}.items():
         window[key].update(disabled=state)
@@ -397,7 +403,8 @@ def main():
 
     # Store Ion and ESA energy as a registered data source
     rv = TwRegisterUserDataBufPy('/EnergyData', ['Ion energy (eV)', 'ESA energy (eV)'], 0)
-    if (rv != TwSuccess): log.error(f"Failed to register data source '/EnergyData': {TwTranslateReturnValue(rv).decode()}.")
+    if (rv != TwSuccess and not devmode): 
+        log.error(f"Failed to register data source '/EnergyData': {TwTranslateReturnValue(rv).decode()}.")
 
     # Event Loop 
     while True:
