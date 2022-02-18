@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.6.6'
+__version__ = '0.6.7'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021-2022, TOFWERK'
 
@@ -286,6 +286,7 @@ def scanning_thread(window, values):
     end_energy = float(values['-END_ENERGY-'])  # end energy, eV
     step_size = float(values['-STEP_SIZE-'])  # energy step stize, eV
     time_per_step = float(values['-TIME_PER_STEP-'])  # time per energy step, s
+    n_steps = math.floor((end_energy - start_energy)/step_size) + 1
     if step_size == 0:
         log.error('Step size must not be 0 eV.')
         [window[key].update(disabled=value) for key, value in {'-START-': False, '-STOP-': True}.items()]
@@ -328,17 +329,19 @@ def scanning_thread(window, values):
 
     # start energy scan
     window['-ION_ENERGY-'].update(background_color='#FAC761')  # orange
+    time_remaining = n_steps*time_per_step
     for i in step_size*np.arange(start_energy/step_size, end_energy/step_size+1e-6):
-        log.info(f'Scanning step {i:g} eV.')
+        log.info(f'Scanning step {i:.1f} eV    {progress:.0f} %    {time_remaining:.0f} s remaining.')
         h5logtext = f'{i:g} eV'.encode()
         TwAddLogEntry(h5logtext, 0)
         set_voltages_ea(values, i)
         window['-ION_ENERGY-'].update(value=round(i, 2))
         TwUpdateUserData('/EnergyData'.encode(), 2, np.array([i, values['-ESA_ENERGY-']], dtype=np.float64))
         window['-PROGRESS_BAR-'].update_bar(progress, 100)
-        progress += 100 / ((end_energy - start_energy)/step_size)
+        progress += 100 / n_steps
+        time_remaining -= time_per_step
         if exit_event.wait(timeout=time_per_step): break
-           
+    window['-PROGRESS_BAR-'].update_bar(100, 100)       
     log.info('Stopping acquisition.')
     window['-ION_ENERGY-'].update(background_color='#99C794')  # back to green
     TwStopAcquisition()
