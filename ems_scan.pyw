@@ -153,6 +153,14 @@ def set_voltages_ea(values, ion_energy):
     tps_error_log(TwTpsSetTargetValue(tps1rc['TOFREF'], V_tofreference), 'TOFREF')
     tps_error_log(TwTpsSetTargetValue(tps1rc['TOFEXTR1'], V_tofextractor1), 'TOFEXTR1')
     tps_error_log(TwTpsSetTargetValue(tps1rc['RG'], V_rg), 'RG')
+    # # Show actual TPS voltages as debug message: Orifice|Extractor|Lens1|Inner|Outer|Matsuda|Reference|Lens2|Defl|Deflfl|TOFreference|TOFExtr1|RG
+    # log.debug(f"\nOrifice:{values['-ORIFICE-']}\nExtractor:{V_extractor + float(values['-IONEX-']):g}"
+    #     f"\nLens1:{V_extractor + float(values['-LENS1-']) + 0.9*(float(values['-ESA_ENERGY-'])-100):g}"
+    #     f"\nInner:{V_extractor + V1:g}\nOuter:{V_extractor + V2:g}"
+    #     f"\nMatsuda:{V_extractor + float(values['-MATSUDA-']) + 0.25*(float(values['-ESA_ENERGY-'])-100):g}"
+    #     f"\nReference:{V_tofreference + V_reference:g}\nLens2:{V_tofreference + V_reference + float(values['-LENS2-']):g}"
+    #     f"\nDefl:{V_tofreference + V_reference + float(values['-DEFL-']):g}\nDeflfl:{V_tofreference + V_reference + float(values['-DEFLFL-']):g}"
+    #     f"\nTOFref:{V_tofreference:g}\nTOFExtr1:{V_tofextractor1:g}\nRG:{V_rg:g}")
 
 
 def set_voltages_tof(values):
