@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.6.8'
+__version__ = '0.7.0'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021-2022, TOFWERK'
 
@@ -356,7 +356,7 @@ def scanning_thread(window, values):
     window['-ION_ENERGY-'].update(background_color='#99C794')  # back to green
     TwStopAcquisition()
     while (TwDaqActive() and not devmode):  # wait until acquisition is stopped
-        if exit_event.wait(timeout=1): break
+        time.sleep(1)
     TwLoadIniFile(''.encode())
     TwTpsLoadSetFile('TwTpsTempSetFile'.encode())
     if os.path.exists('./TwTpsTempSetFile'): os.remove('./TwTpsTempSetFile')
