@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.7.0'
+__version__ = '0.8.0'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021-2022, TOFWERK'
 
@@ -189,6 +189,7 @@ def save_setpoints(set_file, setpoints, values):
     """Save setpoints to file"""
     for key in SETPOINTS:
         setpoints[key] = values[key]
+    setpoints['-DATAFILE_NAME-'] = values['-DATAFILE_NAME-']
     with open(set_file, 'w') as f:
         json.dump(setpoints, f)
 
@@ -262,7 +263,9 @@ def make_window():
         sg.Text('End ion energy (eV)', size=(15,1)), sg.Input(default_text='10', size=(8,1), key='-END_ENERGY-'),
         sg.Text('Step size (eV)', size=(15,1)), sg.Input(default_text='0.5', size=(8,1), key='-STEP_SIZE-')],
         [sg.Text('Time per step (s)', size=(15,1)), sg.Input(default_text='3', size=(8,1), key='-TIME_PER_STEP-')],
-        [sg.Button('Start', key='-START-'), sg.Button('Cancel', key='-STOP-'),
+        [sg.Text('Datafile name', size=(15,1)), sg.Input(default_text='EMSscan_<year>-<month>-<day>_<hour>h<minute>m<second>s.h5', 
+            expand_x=True, justification='left', key='-DATAFILE_NAME-')],
+        [sg.Button('Start', size=(7,1), key='-START-'), sg.Button('Cancel', key='-STOP-'),
         sg.ProgressBar(max_value=100, orientation='h', size=(20, 10), key='-PROGRESS_BAR-', expand_x=True, bar_color=('#FAC761', '#FFFFFF'))]]
         )]]
 
@@ -321,7 +324,7 @@ def scanning_thread(window, values):
             if exit_event.wait(timeout=1): break
 
     TwSaveIniFile(''.encode())
-    TwSetDaqParameter('DataFileName'.encode(), 'EMSscan_<year>-<month>-<day>_<hour>h<minute>m<second>s.h5'.encode())
+    TwSetDaqParameter('DataFileName'.encode(), values['-DATAFILE_NAME-'].encode())
 
     exit_event.wait(timeout=2)  # initial delay, to make sure all voltages are set.
 
@@ -364,19 +367,22 @@ def scanning_thread(window, values):
     for key in SETPOINTS:
         window[key].update(value=setpoints[key])
     TwUpdateUserData('/EnergyData'.encode(), 2, np.array([values['-ION_ENERGY-'], values['-ESA_ENERGY-']], dtype=np.float64))
+    log.info(f'Datafile: {TwGetDaqParameter("DataFileName".encode()).decode()}')
     log.info('Energy scan completed.')
     [window[key].update(disabled=value) for key, value in {'-START-': False, '-STOP-': True}.items()]
     window['-PROGRESS_BAR-'].update_bar(0, 100)
     exit_event.clear()  # clear exit flag
 
+
 def main():
     window = make_window()
-    
+
     # load previous settings
     if os.path.exists('./currentSetpoints.tps'):
         setpoints = load_setpoints('./currentSetpoints.tps'.encode())
         for key in SETPOINTS:
             window[key].update(value=setpoints[key])
+        window['-DATAFILE_NAME-'].update(value=setpoints['-DATAFILE_NAME-'])
     else:
         setpoints = SETPOINTS
 
@@ -486,6 +492,7 @@ def main():
                 setpoints=load_setpoints(values[event])
                 for key in SETPOINTS:
                     window[key].update(value=setpoints[key])
+                window['-DATAFILE_NAME-'].update(value=setpoints['-DATAFILE_NAME-'])
                 log.info(f'Set values loaded from {os.path.basename(values[event])}')
             window['-LOAD-'].update('')
         elif event in ('-SET_TPS-', '+SEND+', '+SEND2+'):
