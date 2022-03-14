@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.8.0'
+__version__ = '0.8.1'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021-2022, TOFWERK'
 
@@ -191,7 +191,7 @@ def save_setpoints(set_file, setpoints, values):
         setpoints[key] = values[key]
     setpoints['-DATAFILE_NAME-'] = values['-DATAFILE_NAME-']
     with open(set_file, 'w') as f:
-        json.dump(setpoints, f)
+        json.dump(setpoints, f, indent = 2)
 
 
 def read_setpoints_from_tps():
