@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.8.1'
+__version__ = '0.8.2'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021-2022, TOFWERK'
 
@@ -309,7 +309,8 @@ def scanning_thread(window, values):
     log.info('Energy scan started.')
 
     TwTpsSaveSetFile('TwTpsTempSetFile'.encode())
-    save_setpoints('./currentSetpoints.tps'.encode(), SETPOINTS, values)
+    setpoints = copy.deepcopy(SETPOINTS)
+    save_setpoints('./currentSetpoints.tps'.encode(), setpoints, values)
 
     set_voltages_ea(values, start_energy)
     set_voltages_tof(values)
@@ -339,7 +340,6 @@ def scanning_thread(window, values):
     TwAddAttributeDouble('/EnergyData'.encode(), 'TimePerStep'.encode(), time_per_step)
 
     exit_event.wait(timeout=1)  # additional delay, to make sure TofDaq is ready.
-
     # start energy scan
     window['-ION_ENERGY-'].update(background_color='#FAC761')  # orange
     time_remaining = n_steps*time_per_step
@@ -357,6 +357,8 @@ def scanning_thread(window, values):
     window['-PROGRESS_BAR-'].update_bar(100, 100)       
     log.info('Stopping acquisition.')
     window['-ION_ENERGY-'].update(background_color='#99C794')  # back to green
+    desc = TSharedMemoryDesc()
+    TwGetDescriptor(desc)
     TwStopAcquisition()
     while (TwDaqActive() and not devmode):  # wait until acquisition is stopped
         time.sleep(1)
@@ -367,8 +369,8 @@ def scanning_thread(window, values):
     for key in SETPOINTS:
         window[key].update(value=setpoints[key])
     TwUpdateUserData('/EnergyData'.encode(), 2, np.array([values['-ION_ENERGY-'], values['-ESA_ENERGY-']], dtype=np.float64))
-    log.info(f'Datafile: {TwGetDaqParameter("DataFileName".encode()).decode()}')
     log.info('Energy scan completed.')
+    log.info(f'Datafile: {desc.currentDataFileName.decode()}')
     [window[key].update(disabled=value) for key, value in {'-START-': False, '-STOP-': True}.items()]
     window['-PROGRESS_BAR-'].update_bar(0, 100)
     exit_event.clear()  # clear exit flag
