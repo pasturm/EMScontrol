@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.8.2'
+__version__ = '0.8.3'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021-2022, TOFWERK'
 
@@ -100,14 +100,14 @@ def calculate_ESA_voltages(esa_energy, r0 = 0.100, d = 0.0125):
 
 def calculate_energies_from_ESA_voltages(V_inner, V_outer):
     """
-    Calculates the ESA energy and staring ion energy from the cylinder electrode potentials.
+    Calculates the ESA energy and starting ion energy from the cylinder electrode potentials.
     
     Arguments:
     V_inner: inner cylinder potential, V
     V_outer: outer cylinder potential, V
     
     Return values:
-    esa_energy, ion_energy : ESA and staring ion energy, eV
+    esa_energy, ion_energy : ESA and starting ion energy, eV
     """
     r0 = 0.100
     d = 0.0125
@@ -494,7 +494,12 @@ def main():
                 setpoints=load_setpoints(values[event])
                 for key in SETPOINTS:
                     window[key].update(value=setpoints[key])
-                window['-DATAFILE_NAME-'].update(value=setpoints['-DATAFILE_NAME-'])
+                try:
+                    setpoints['-DATAFILE_NAME-']
+                except Exception:
+                    pass
+                else:
+                    window['-DATAFILE_NAME-'].update(value=setpoints['-DATAFILE_NAME-'])
                 log.info(f'Set values loaded from {os.path.basename(values[event])}')
             window['-LOAD-'].update('')
         elif event in ('-SET_TPS-', '+SEND+', '+SEND2+'):
