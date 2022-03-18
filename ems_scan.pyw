@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.8.3'
+__version__ = '0.9.0'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021-2022, TOFWERK'
 
@@ -25,6 +25,9 @@ from TwTool import *
 # developer mode for offline testing
 devmode = False  
 # devmode = True  
+
+# user settings
+settings = sg.UserSettings(path='.')
 
 # Logger
 log = logging.getLogger(__name__)
@@ -189,7 +192,6 @@ def save_setpoints(set_file, setpoints, values):
     """Save setpoints to file"""
     for key in SETPOINTS:
         setpoints[key] = values[key]
-    setpoints['-DATAFILE_NAME-'] = values['-DATAFILE_NAME-']
     with open(set_file, 'w') as f:
         json.dump(setpoints, f, indent = 2)
 
@@ -222,48 +224,48 @@ def make_window():
     layout = [[sg.Menu(menu_def, key='-MENU-')]]
 
     layout += [[sg.Frame('Energies (eV)', 
-        [[sg.Text('Ion energy', size=(15,1)), sg.Input(default_text='50', size=(8,1), key='-ION_ENERGY-'),
-        sg.Text('ESA energy', size=(15,1)), sg.Input(default_text='100', size=(8,1), key='-ESA_ENERGY-'), 
-        sg.Text('TOF energy', size=(15,1)), sg.Input(default_text='60', size=(8,1), key='-TOF_ENERGY-')]]
+        [[sg.Text('Ion energy', size=(15,1)), sg.Input(settings.get('-ION_ENERGY-', '20'), size=(8,1), key='-ION_ENERGY-'),
+        sg.Text('ESA energy', size=(15,1)), sg.Input(settings.get('-ESA_ENERGY-', '100'), size=(8,1), key='-ESA_ENERGY-'), 
+        sg.Text('TOF energy', size=(15,1)), sg.Input(settings.get('-TOF_ENERGY-', '55'), size=(8,1), key='-TOF_ENERGY-')]]
         )]]
 
     layout += [[sg.Frame('Voltages (V)',
-        [[sg.Text('Orifice', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-ORIFICE-'),
-        sg.Text('Matsuda', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-MATSUDA-'),
-        sg.Text('TOF Pulse', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-TOFPULSE-')],
-        [sg.Text('Lens 1', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-LENS1-'),
-        sg.Text('Lens 2', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-LENS2-'),
-        sg.Text('RG', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-RG-')],
-        [sg.Text('Deflector 1 up', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-DEFL1U-'),
-        sg.Text('Deflector 2', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-DEFL-'),
-        sg.Text('RB', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-RB-')],
-        [sg.Text('Deflector 1 down', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-DEFL1D-'),
-        sg.Text('Deflector Flange 2', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-DEFLFL-'),
-        sg.Text('Drift', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-DRIFT-')],
-        [sg.Text('Deflector 1 left', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-DEFL1L-'),
-        sg.Text('Reference', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-REF-'),
-        sg.Text('PA', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-PA-')],
-        [sg.Text('Deflector 1 right', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-DEFL1R-'),
-        sg.Text('TOF Extractor 1', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-TOFEXTR1-'),
-        sg.Text('MCP', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-MCP-')],
-        [sg.Text('Ion Extractor', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-IONEX-'), 
-        sg.Text('TOF Extractor 2', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-TOFEXTR2-')],
-        [sg.Input(visible=False, default_text='1000', key='-HVPOS-'),
-        sg.Input(visible=False, default_text='-4000', key='-HVNEG-'),
-        sg.Input(visible=False, default_text='1', key='-HVSUPPLY-')]]
+        [[sg.Text('Orifice', size=(15,1)), sg.Input(settings.get('-ORIFICE-', '0'), size=(8,1), key='-ORIFICE-'),
+        sg.Text('Matsuda', size=(15,1)), sg.Input(settings.get('-MATSUDA-', '0'), size=(8,1), key='-MATSUDA-'),
+        sg.Text('TOF Pulse', size=(15,1)), sg.Input(settings.get('-TOFPULSE-', '0'), size=(8,1), key='-TOFPULSE-')],
+        [sg.Text('Lens 1', size=(15,1)), sg.Input(settings.get('-LENS1-', '0'), size=(8,1), key='-LENS1-'),
+        sg.Text('Lens 2', size=(15,1)), sg.Input(settings.get('-LENS2-', '0'), size=(8,1), key='-LENS2-'),
+        sg.Text('RG', size=(15,1)), sg.Input(settings.get('-RG-', '0'), size=(8,1), key='-RG-')],
+        [sg.Text('Deflector 1 up', size=(15,1)), sg.Input(settings.get('-DEFL1U-', '0'), size=(8,1), key='-DEFL1U-'),
+        sg.Text('Deflector 2', size=(15,1)), sg.Input(settings.get('-DEFL-', '0'), size=(8,1), key='-DEFL-'),
+        sg.Text('RB', size=(15,1)), sg.Input(settings.get('-RB-', '0'), size=(8,1), key='-RB-')],
+        [sg.Text('Deflector 1 down', size=(15,1)), sg.Input(settings.get('-DEFL1D-', '0'), size=(8,1), key='-DEFL1D-'),
+        sg.Text('Deflector Flange 2', size=(15,1)), sg.Input(settings.get('-DEFLFL-', '0'), size=(8,1), key='-DEFLFL-'),
+        sg.Text('Drift', size=(15,1)), sg.Input(settings.get('-DRIFT-', '0'), size=(8,1), key='-DRIFT-')],
+        [sg.Text('Deflector 1 left', size=(15,1)), sg.Input(settings.get('-DEFL1L-', '0'), size=(8,1), key='-DEFL1L-'),
+        sg.Text('Reference', size=(15,1)), sg.Input(settings.get('-REF-', '0'), size=(8,1), key='-REF-'),
+        sg.Text('PA', size=(15,1)), sg.Input(settings.get('-PA-', '0'), size=(8,1), key='-PA-')],
+        [sg.Text('Deflector 1 right', size=(15,1)), sg.Input(settings.get('-DEFL1R-', '0'), size=(8,1), key='-DEFL1R-'),
+        sg.Text('TOF Extractor 1', size=(15,1)), sg.Input(settings.get('-TOFEXTR1-', '0'), size=(8,1), key='-TOFEXTR1-'),
+        sg.Text('MCP', size=(15,1)), sg.Input(settings.get('-MCP-', '0'), size=(8,1), key='-MCP-')],
+        [sg.Text('Ion Extractor', size=(15,1)), sg.Input(settings.get('-IONEX-', '0'), size=(8,1), key='-IONEX-'), 
+        sg.Text('TOF Extractor 2', size=(15,1)), sg.Input(settings.get('-TOFEXTR2-', '0'), size=(8,1), key='-TOFEXTR2-')],
+        [sg.Input(settings.get('-HVPOS-', '1000'), visible=False, key='-HVPOS-'),
+        sg.Input(settings.get('-HVNEG-', '-4000'), visible=False, key='-HVNEG-'),
+        sg.Input(settings.get('-HVSUPPLY-', '1'), visible=False, key='-HVSUPPLY-')]]
         )]]
   
     layout += [[sg.Button('Send all', key='-SET_TPS-'), sg.Button('Read setpoints', key='-READ_FROM_TPS-'),  
         sg.Input(visible=False, enable_events=True, key='-LOAD-'), sg.FileBrowse('Open...', initial_folder='setpoints', target='-LOAD-', key = '-LOAD2-'), 
-        sg.Input(visible=False, enable_events=True, key='-SAVE-'), sg.FileSaveAs('Save...', default_extension = 'tps', initial_folder='setpoints', target='-SAVE-', key = '-SAVE2-'),
+        sg.Input(visible=False, enable_events=True, key='-SAVE-'), sg.FileSaveAs('Save...', default_extension = 'txt', initial_folder='setpoints', target='-SAVE-', key = '-SAVE2-'),
         sg.Button('Zero all', key='-ZERO_ALL-')]]
 
     layout += [[sg.Frame('Scan', 
-        [[sg.Text('Start ion energy (eV)', size=(15,1)), sg.Input(default_text='0', size=(8,1), key='-START_ENERGY-'),
-        sg.Text('End ion energy (eV)', size=(15,1)), sg.Input(default_text='10', size=(8,1), key='-END_ENERGY-'),
-        sg.Text('Step size (eV)', size=(15,1)), sg.Input(default_text='0.5', size=(8,1), key='-STEP_SIZE-')],
-        [sg.Text('Time per step (s)', size=(15,1)), sg.Input(default_text='3', size=(8,1), key='-TIME_PER_STEP-')],
-        [sg.Text('Datafile name', size=(15,1)), sg.Input(default_text='EMSscan_<year>-<month>-<day>_<hour>h<minute>m<second>s.h5', 
+        [[sg.Text('Start ion energy (eV)', size=(15,1)), sg.Input(settings.get('-START_ENERGY-', '0'), size=(8,1), key='-START_ENERGY-'),
+        sg.Text('End ion energy (eV)', size=(15,1)), sg.Input(settings.get('-END_ENERGY-', '10'), size=(8,1), key='-END_ENERGY-'),
+        sg.Text('Step size (eV)', size=(15,1)), sg.Input(settings.get('-STEP_SIZE-', '0.5'), size=(8,1), key='-STEP_SIZE-')],
+        [sg.Text('Time per step (s)', size=(15,1)), sg.Input(settings.get('-TIME_PER_STEP-', '5'), size=(8,1), key='-TIME_PER_STEP-')],
+        [sg.Text('Datafile name', size=(15,1)), sg.Input(settings.get('-DATAFILE_NAME-', 'EMSscan_<year>-<month>-<day>_<hour>h<minute>m<second>s.h5'), 
             expand_x=True, justification='left', key='-DATAFILE_NAME-')],
         [sg.Button('Start', size=(7,1), key='-START-'), sg.Button('Cancel', key='-STOP-'),
         sg.ProgressBar(max_value=100, orientation='h', size=(20, 10), key='-PROGRESS_BAR-', expand_x=True, bar_color=('#FAC761', '#FFFFFF'))]]
@@ -310,7 +312,7 @@ def scanning_thread(window, values):
 
     TwTpsSaveSetFile('TwTpsTempSetFile'.encode())
     setpoints = copy.deepcopy(SETPOINTS)
-    save_setpoints('./currentSetpoints.tps'.encode(), setpoints, values)
+    save_setpoints('./TempScanSetFile'.encode(), setpoints, values)
 
     set_voltages_ea(values, start_energy)
     set_voltages_tof(values)
@@ -365,7 +367,8 @@ def scanning_thread(window, values):
     TwLoadIniFile(''.encode())
     TwTpsLoadSetFile('TwTpsTempSetFile'.encode())
     if os.path.exists('./TwTpsTempSetFile'): os.remove('./TwTpsTempSetFile')
-    setpoints = load_setpoints('./currentSetpoints.tps'.encode())
+    setpoints = load_setpoints('./TempScanSetFile'.encode())
+    if os.path.exists('./TempScanSetFile'): os.remove('./TempScanSetFile')
     for key in SETPOINTS:
         window[key].update(value=setpoints[key])
     TwUpdateUserData('/EnergyData'.encode(), 2, np.array([values['-ION_ENERGY-'], values['-ESA_ENERGY-']], dtype=np.float64))
@@ -379,14 +382,7 @@ def scanning_thread(window, values):
 def main():
     window = make_window()
 
-    # load previous settings
-    if os.path.exists('./currentSetpoints.tps'):
-        setpoints = load_setpoints('./currentSetpoints.tps'.encode())
-        for key in SETPOINTS:
-            window[key].update(value=setpoints[key])
-        window['-DATAFILE_NAME-'].update(value=setpoints['-DATAFILE_NAME-'])
-    else:
-        setpoints = SETPOINTS
+    setpoints = SETPOINTS
 
     logging.basicConfig(stream=sys.stdout, format='%(asctime)s [%(levelname)s] %(message)s', 
         datefmt='%Y-%m-%d %H:%M:%S', level=logging.DEBUG)
@@ -494,12 +490,6 @@ def main():
                 setpoints=load_setpoints(values[event])
                 for key in SETPOINTS:
                     window[key].update(value=setpoints[key])
-                try:
-                    setpoints['-DATAFILE_NAME-']
-                except Exception:
-                    pass
-                else:
-                    window['-DATAFILE_NAME-'].update(value=setpoints['-DATAFILE_NAME-'])
                 log.info(f'Set values loaded from {os.path.basename(values[event])}')
             window['-LOAD-'].update('')
         elif event in ('-SET_TPS-', '+SEND+', '+SEND2+'):
@@ -555,7 +545,10 @@ def main():
                 scroll_stepsize = 1
             window[key].update(value=round(float(values[key]) - float(window[key].user_bind_event.delta/120*scroll_stepsize), 2))
 
-    save_setpoints('./currentSetpoints.tps'.encode(), SETPOINTS, values)
+    # save user settings
+    for key in SETPOINTS:
+        settings[key] = values[key]
+    settings['-DATAFILE_NAME-'] = values['-DATAFILE_NAME-']
     TwUnregisterUserData('/EnergyData'.encode())
     TwTpsDisconnect()
     TwCleanupDll()
