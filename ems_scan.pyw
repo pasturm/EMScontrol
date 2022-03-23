@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.9.0'
+__version__ = '0.9.1'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021-2022, TOFWERK'
 
@@ -130,7 +130,7 @@ def tps_error_log(rv, key):
 def set_voltages_ea(values, ion_energy):
     """
     Set all ion_energy-dependent voltages.
-    """ 
+    """
     V1, V2 = calculate_ESA_voltages(float(values['-ESA_ENERGY-']))
     V_extractor = ion_energy - float(values['-ESA_ENERGY-'])
     V_reference = float(values['-REF-'])
@@ -220,7 +220,7 @@ def make_window():
     sg.SetOptions(text_justification='right')
     # sg.theme('SystemDefaultForReal')
 
-    menu_def = [['&Help', ['&Keyboard shortcuts...', '&Voltage mapping...', '&About...']]]
+    menu_def = [['&Help', ['&Keyboard shortcuts...', '&Voltage mapping...', '&About...']], ['&Settings', ['&Energy calibration...']]]
     layout = [[sg.Menu(menu_def, key='-MENU-')]]
 
     layout += [[sg.Frame('Energies (eV)', 
@@ -286,7 +286,7 @@ def bind_mouse_wheel(window):
         window[key].bind('<MouseWheel>', ',+MOUSE WHEEL+')
 
 
-def scanning_thread(window, values):
+def scanning_thread(window, values, energy_offset):
     """Energy scanning"""
     if (not TwTofDaqRunning() and not devmode):
         log.error('TofDaqRec not running.')
@@ -314,7 +314,7 @@ def scanning_thread(window, values):
     setpoints = copy.deepcopy(SETPOINTS)
     save_setpoints('./TempScanSetFile'.encode(), setpoints, values)
 
-    set_voltages_ea(values, start_energy)
+    set_voltages_ea(values, start_energy-energy_offset)
     set_voltages_tof(values)
     for key in V_INPUTS: window[key].update(background_color='#99C794')
     window['-ION_ENERGY-'].update(value=values['-START_ENERGY-'])
@@ -340,6 +340,7 @@ def scanning_thread(window, values):
     TwAddAttributeDouble('/EnergyData'.encode(), 'EndEnergy'.encode(), end_energy)
     TwAddAttributeDouble('/EnergyData'.encode(), 'StepSize'.encode(), step_size)
     TwAddAttributeDouble('/EnergyData'.encode(), 'TimePerStep'.encode(), time_per_step)
+    TwAddAttributeDouble('/EnergyData'.encode(), 'EnergyOffset'.encode(), energy_offset)
 
     exit_event.wait(timeout=1)  # additional delay, to make sure TofDaq is ready.
     # start energy scan
@@ -349,7 +350,7 @@ def scanning_thread(window, values):
         log.info(f'Scanning step {i:.1f} eV    {progress:.0f} %    {time_remaining:.0f} s remaining.')
         h5logtext = f'{i:g} eV'.encode()
         TwAddLogEntry(h5logtext, 0)
-        set_voltages_ea(values, i)
+        set_voltages_ea(values, i-energy_offset)
         window['-ION_ENERGY-'].update(value=round(i, 2))
         TwUpdateUserData('/EnergyData'.encode(), 2, np.array([i, values['-ESA_ENERGY-']], dtype=np.float64))
         window['-PROGRESS_BAR-'].update_bar(progress, 100)
@@ -383,6 +384,7 @@ def main():
     window = make_window()
 
     setpoints = SETPOINTS
+    energy_offset = settings['-ENERGY-OFFSET-']
 
     logging.basicConfig(stream=sys.stdout, format='%(asctime)s [%(levelname)s] %(message)s', 
         datefmt='%Y-%m-%d %H:%M:%S', level=logging.DEBUG)
@@ -467,9 +469,16 @@ def main():
                 'V* = (Ion_energy - ESA_energy)*V/eV',
                 title = 'Voltage mapping', icon = resource_path('tw.ico'), 
                 font = ('Courier', 10), non_blocking = True, line_width = 100)
+        elif event == 'Energy calibration...':
+            energy_offset_string=sg.popup_get_text('Energy offset (eV)', default_text=energy_offset, size=(15,1), icon='tw.ico')
+            if energy_offset_string!=None:
+                try:
+                    energy_offset = float(energy_offset_string)
+                except ValueError:
+                    log.error((f'Cannot convert {energy_offset_string} string to numeric value.'))
         elif event == '-START-':
             if is_all_numeric(values):
-                threading.Thread(target=scanning_thread, args=(window,values,), daemon=True).start()
+                threading.Thread(target=scanning_thread, args=(window,values,energy_offset,), daemon=True).start()
         elif event == '-STOP-':
             exit_event.set()
             log.warning('Stopping energy scan by user request.')
@@ -496,7 +505,7 @@ def main():
             if is_all_numeric(values):
                 log.info('TPS voltages set.')
                 ion_energy = float(values['-ION_ENERGY-'])
-                set_voltages_ea(values, ion_energy)
+                set_voltages_ea(values, ion_energy-energy_offset)
                 set_voltages_tof(values)
                 for key in V_INPUTS:
                     window[key].update(background_color='#99C794')
@@ -508,7 +517,7 @@ def main():
             tof_energy = ion_energy - tps2setpoint['TOFREF']
             V_extractor = ion_energy - esa_energy
             window['-ESA_ENERGY-'].update(value=round(esa_energy, 2))
-            window['-ION_ENERGY-'].update(value=round(ion_energy, 2))
+            window['-ION_ENERGY-'].update(value=round(ion_energy, 2)+energy_offset)
             window['-MCP-'].update(value=round(tps2setpoint['MCP'], 3))
             window['-PA-'].update(value=round(tps2setpoint['PA'], 3))
             window['-DRIFT-'].update(value=round(tps2setpoint['DRIFT'], 3))
@@ -549,6 +558,7 @@ def main():
     for key in SETPOINTS:
         settings[key] = values[key]
     settings['-DATAFILE_NAME-'] = values['-DATAFILE_NAME-']
+    settings['-ENERGY-OFFSET-'] = energy_offset
     TwUnregisterUserData('/EnergyData'.encode())
     TwTpsDisconnect()
     TwCleanupDll()

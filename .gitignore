@@ -7,6 +7,6 @@ build/
 __pycache__/
 *.html
 debug/
-currentSetpoints.tps
+ems_scan.json
 setpoints/
 versionfile.txt
