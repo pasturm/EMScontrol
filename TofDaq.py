@@ -565,7 +565,7 @@ def TwGetRegUserDataSources(arrayLength, location, nbrElements, dsType):
     if location is None and nbrElements is None and dsType is None:
         libTofDaq._TwGetRegUserDataSources.argtypes = [ndpointer(np.int32, shape=1), ct.c_void_p, ct.c_void_p, ct.c_void_p]
     else:
-        libTofDaq._TwGetRegUserDataSources.argtypes = [ndpointer(np.int32), ct.c_char_p, ndpointer(np.int32, shape=1), ndpointer(np.int32)]
+        libTofDaq._TwGetRegUserDataSources.argtypes = [ndpointer(np.int32, shape=1), ct.c_char_p, ndpointer(np.int32), ndpointer(np.int32)]
     return libTofDaq._TwGetRegUserDataSources(arrayLength, location, nbrElements, dsType)
     
 

@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.9.0'
+__version__ = '0.9.2'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021-2022, TOFWERK'
 
@@ -329,6 +329,14 @@ def scanning_thread(window, values):
     TwSaveIniFile(''.encode())
     TwSetDaqParameter('DataFileName'.encode(), values['-DATAFILE_NAME-'].encode())
 
+    # Check if EnergyData is a registered data source
+    nbrElements = np.zeros((1,), dtype=np.int32)
+    rv = TwQueryRegUserDataSize('/EnergyData'.encode(), nbrElements)
+    if (rv != TwSuccess and not devmode):
+        rv = TwRegisterUserDataBufPy('/EnergyData', ['Ion energy (eV)', 'ESA energy (eV)'], 0)
+        if (rv != TwSuccess and not devmode):
+            log.error(f"Failed to register data source '/EnergyData': {TwTranslateReturnValue(rv).decode()}.")
+        
     exit_event.wait(timeout=2)  # initial delay, to make sure all voltages are set.
 
     TwStartAcquisition()
