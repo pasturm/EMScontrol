@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.10.0'
+__version__ = '0.9.0'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021-2022, TOFWERK'
 
@@ -20,7 +20,6 @@ import re
 import PySimpleGUI as sg
 from TofDaq import *
 from TwTool import *
-import summary_plots as plot
 
 
 # developer mode for offline testing
@@ -221,7 +220,7 @@ def make_window():
     sg.SetOptions(text_justification='right')
     # sg.theme('SystemDefaultForReal')
 
-    menu_def = [['&Plots', ['&Plots...']], ['&Help', ['&Keyboard shortcuts...', '&Voltage mapping...', '&About...']]]
+    menu_def = [['&Help', ['&Keyboard shortcuts...', '&Voltage mapping...', '&About...']]]
     layout = [[sg.Menu(menu_def, key='-MENU-')]]
 
     layout += [[sg.Frame('Energies (eV)', 
@@ -287,25 +286,13 @@ def bind_mouse_wheel(window):
         window[key].bind('<MouseWheel>', ',+MOUSE WHEEL+')
 
 
-def make_plot_window():
-    layout = [[sg.Text('Datafile', size=(7, 1)), sg.InputText(settings.get('-DATAFILE-', ''), key='-DATAFILE-', size=(100, 1), justification='left'), 
-                sg.FileBrowse(initial_folder = settings.get('-DATAFILE-', ''), file_types = (("HDF5 Files", "*.h5"),))],
-             [sg.Text('Plot type', size=(7, 1)), sg.DropDown(['energy distribution', 'time distribution', 'heatmap', '3d surface'], 
-                default_value = settings.get('-PLOTMODE-', 'energy distribution'), key='-PLOTMODE-'), 
-             sg.Checkbox('Logarithmic', default=settings.get('-LOG-', True), key='-LOG-'),
-             sg.Text('mass/charge (Th)', size=(15, 1)), sg.InputText(settings.get('-MQ-', '40'), size=(7, 1), key='-MQ-')],
-             [sg.Button('Create plot', key='-CREATE_PLOT-')]]
-    return sg.Window('Create summary plots', layout, icon=resource_path('tw.ico'), resizable=True, enable_close_attempted_event=True, finalize=True)
-
-
 def scanning_thread(window, values):
     """Energy scanning"""
     if (not TwTofDaqRunning() and not devmode):
         log.error('TofDaqRec not running.')
         return
 
-    for key, state in {'-START-': True, '-STOP-': False}.items(): 
-        window[key].update(disabled=state)
+    for key, state in {'-START-': True, '-STOP-': False}.items(): window[key].update(disabled=state)
 
     progress = 0
     start_energy = float(values['-START_ENERGY-'])  # start energy, eV
@@ -387,7 +374,6 @@ def scanning_thread(window, values):
     TwUpdateUserData('/EnergyData'.encode(), 2, np.array([values['-ION_ENERGY-'], values['-ESA_ENERGY-']], dtype=np.float64))
     log.info('Energy scan completed.')
     log.info(f'Datafile: {desc.currentDataFileName.decode()}')
-    settings['-DATAFILE-'] = desc.currentDataFileName.decode()
     [window[key].update(disabled=value) for key, value in {'-START-': False, '-STOP-': True}.items()]
     window['-PROGRESS_BAR-'].update_bar(0, 100)
     exit_event.clear()  # clear exit flag
@@ -395,7 +381,6 @@ def scanning_thread(window, values):
 
 def main():
     window = make_window()
-    window_plot = None
 
     setpoints = SETPOINTS
 
@@ -440,8 +425,7 @@ def main():
 
     # Event Loop 
     while True:
-        event, values = window.read(timeout=500)
-        # window_all, event, values = sg.read_all_windows()  # does not yet work, see https://github.com/PySimpleGUI/PySimpleGUI/issues/3771
+        event, values = window.read()
         if event == sg.WINDOW_CLOSE_ATTEMPTED_EVENT:
             break
         elif event == 'About...':
@@ -483,13 +467,10 @@ def main():
                 'V* = (Ion_energy - ESA_energy)*V/eV',
                 title = 'Voltage mapping', icon = resource_path('tw.ico'), 
                 font = ('Courier', 10), non_blocking = True, line_width = 100)
-        elif event == 'Plots...':
-            window_plot = make_plot_window()
-            window_plot.move(window.current_location()[0], window.current_location()[1]+600)
-        elif event in ('-START-', 'Start'):
+        elif event == '-START-':
             if is_all_numeric(values):
                 threading.Thread(target=scanning_thread, args=(window,values,), daemon=True).start()
-        elif event in ('-STOP-', 'Cancel'):
+        elif event == '-STOP-':
             exit_event.set()
             log.warning('Stopping energy scan by user request.')
             window['-ION_ENERGY-'].update(background_color='#FFFFFF')
@@ -564,39 +545,10 @@ def main():
                 scroll_stepsize = 1
             window[key].update(value=round(float(values[key]) - float(window[key].user_bind_event.delta/120*scroll_stepsize), 2))
 
-        if window_plot != None:
-            event2, values2 = window_plot.read(timeout=20)
-            if event2 == sg.WINDOW_CLOSE_ATTEMPTED_EVENT:
-                settings['-PLOTMODE-'] = values2['-PLOTMODE-']
-                settings['-DATAFILE-'] = values2['-DATAFILE-']
-                settings['-MQ-'] = values2['-MQ-']
-                settings['-LOG-'] = values2['-LOG-']
-                window_plot.close()
-                window_plot = None
-            elif event2 == '-CREATE_PLOT-':
-                if values2['-PLOTMODE-']=='energy distribution':
-                    fig = plot.plot_plotly_iedf(values2['-DATAFILE-'].encode(), float(values2['-MQ-']), float(values2['-LOG-']))
-                    fig.write_html('plots/fig_iedf.html', auto_open=True)
-                elif values2['-PLOTMODE-']=='time distribution':
-                    fig = plot.plot_plotly_avgSegProfile(values2['-DATAFILE-'].encode(), float(values2['-MQ-']), float(values2['-LOG-']))
-                    fig.write_html('plots/fig_avgSegProfile.html', auto_open=True)
-                elif values2['-PLOTMODE-']=='heatmap':
-                    fig = plot.plot_plotly_heatmap(values2['-DATAFILE-'].encode(), float(values2['-MQ-']), float(values2['-LOG-']))
-                    fig.write_html('plots/fig_heatmap.html', auto_open=True)
-                elif values2['-PLOTMODE-']=='3d surface':
-                    fig = plot.plot_plotly_3dsurface(values2['-DATAFILE-'].encode(), float(values2['-MQ-']), float(values2['-LOG-']))
-                    fig.write_html('plots/fig_3dsurface.html', auto_open=True)
-
-
     # save user settings
     for key in SETPOINTS:
         settings[key] = values[key]
     settings['-DATAFILE_NAME-'] = values['-DATAFILE_NAME-']
-    if 'values2' in locals():  # values2 might not exist if plot window has never been used
-        settings['-PLOTMODE-'] = values2['-PLOTMODE-']
-        settings['-DATAFILE-'] = values2['-DATAFILE-']
-        settings['-MQ-'] = values2['-MQ-']
-        settings['-LOG-'] = values2['-LOG-']
     TwUnregisterUserData('/EnergyData'.encode())
     TwTpsDisconnect()
     TwCleanupDll()
