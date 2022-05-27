@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.9.2'
+__version__ = '0.10.1'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021-2022, TOFWERK'
 
@@ -127,28 +127,37 @@ def tps_error_log(rv, key):
     if (rv != TwSuccess and not devmode): log.error(f'Failed to set {key} voltage: {TwTranslateReturnValue(rv).decode()}.')
 
 
+def calculate_energy_offset(esa_energy):
+    slope = -0.01265
+    intercept = -0.955
+    return slope*esa_energy+intercept
+
+
 def set_voltages_ea(values, ion_energy):
     """
     Set all ion_energy-dependent voltages.
     """ 
     V1, V2 = calculate_ESA_voltages(float(values['-ESA_ENERGY-']))
-    V_extractor = ion_energy - float(values['-ESA_ENERGY-'])
+    energy_offset = calculate_energy_offset(float(values['-ESA_ENERGY-']))
+    V_extractor = ion_energy + energy_offset - float(values['-ESA_ENERGY-'])
     V_reference = float(values['-REF-'])
-    V_tofreference = ion_energy - float(values['-TOF_ENERGY-'])  # from LV channel -> with sign
+    V_tofreference = ion_energy + energy_offset - float(values['-TOF_ENERGY-'])  # from LV channel -> with sign
     V_tofextractor1 = V_tofreference + float(values['-TOFEXTR1-'])  # from LV channel -> with sign, relative to TOF reference
     rg_correction = 0.25  # ion energy correction of RG in V/eV
     V_rg = float(values['-RG-']) + V_tofreference*rg_correction  # -RG- is set value if TOFREF = 0 V (ion energy - tof energy = 0 eV)
+    V_lens1 = V_extractor + float(values['-LENS1-']) + 0.955*(float(values['-ESA_ENERGY-'])-100)
+    V_matsuda = V_extractor + float(values['-MATSUDA-']) + 0.24*(float(values['-ESA_ENERGY-'])-100)
 
     tps_error_log(TwTpsSetTargetValue(tps1rc['ORIFICE'], float(values['-ORIFICE-'])), 'ORIFICE')
     tps_error_log(TwTpsSetTargetValue(tps1rc['IONEX'], V_extractor + float(values['-IONEX-'])), 'IONEX')
-    tps_error_log(TwTpsSetTargetValue(tps1rc['L1'], V_extractor + float(values['-LENS1-']) + 0.955*(float(values['-ESA_ENERGY-'])-100)), 'L1')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['L1'], V_lens1), 'L1')
     tps_error_log(TwTpsSetTargetValue(tps1rc['DEFL1U'], V_extractor + float(values['-DEFL1U-'])), 'DEFL1U')
     tps_error_log(TwTpsSetTargetValue(tps1rc['DEFL1D'], V_extractor + float(values['-DEFL1D-'])), 'DEFL1D')
     tps_error_log(TwTpsSetTargetValue(tps1rc['DEFL1R'], V_extractor + float(values['-DEFL1R-'])), 'DEFL1R')
     tps_error_log(TwTpsSetTargetValue(tps1rc['DEFL1L'], V_extractor + float(values['-DEFL1L-'])), 'DEFL1L')
     tps_error_log(TwTpsSetTargetValue(tps1rc['INNER_CYL'], V_extractor + V1), 'INNER_CYL')
     tps_error_log(TwTpsSetTargetValue(tps1rc['OUTER_CYL'], V_extractor + V2), 'OUTER_CYL')
-    tps_error_log(TwTpsSetTargetValue(tps1rc['MATSUDA'], V_extractor + float(values['-MATSUDA-']) + 0.24*(float(values['-ESA_ENERGY-'])-100)), 'MATSUDA')
+    tps_error_log(TwTpsSetTargetValue(tps1rc['MATSUDA'], V_matsuda), 'MATSUDA')
     tps_error_log(TwTpsSetTargetValue(tps1rc['REFERENCE'], V_tofreference + V_reference), 'REFERENCE')
     tps_error_log(TwTpsSetTargetValue(tps1rc['L2'], V_tofreference + V_reference + float(values['-LENS2-'])), 'L2')
     tps_error_log(TwTpsSetTargetValue(tps1rc['DEFL'], V_tofreference + V_reference + float(values['-DEFL-'])), 'DEFL')
@@ -156,14 +165,23 @@ def set_voltages_ea(values, ion_energy):
     tps_error_log(TwTpsSetTargetValue(tps1rc['TOFREF'], V_tofreference), 'TOFREF')
     tps_error_log(TwTpsSetTargetValue(tps1rc['TOFEXTR1'], V_tofextractor1), 'TOFEXTR1')
     tps_error_log(TwTpsSetTargetValue(tps1rc['RG'], V_rg), 'RG')
-    # # Show actual TPS voltages as debug message: Orifice|Extractor|Lens1|Inner|Outer|Matsuda|Reference|Lens2|Defl|Deflfl|TOFreference|TOFExtr1|RG
-    # log.debug(f"\nOrifice:{values['-ORIFICE-']}\nExtractor:{V_extractor + float(values['-IONEX-']):g}"
-    #     f"\nLens1:{V_extractor + float(values['-LENS1-']) + 0.9*(float(values['-ESA_ENERGY-'])-100):g}"
-    #     f"\nInner:{V_extractor + V1:g}\nOuter:{V_extractor + V2:g}"
-    #     f"\nMatsuda:{V_extractor + float(values['-MATSUDA-']) + 0.25*(float(values['-ESA_ENERGY-'])-100):g}"
-    #     f"\nReference:{V_tofreference + V_reference:g}\nLens2:{V_tofreference + V_reference + float(values['-LENS2-']):g}"
-    #     f"\nDefl:{V_tofreference + V_reference + float(values['-DEFL-']):g}\nDeflfl:{V_tofreference + V_reference + float(values['-DEFLFL-']):g}"
-    #     f"\nTOFref:{V_tofreference:g}\nTOFExtr1:{V_tofextractor1:g}\nRG:{V_rg:g}")
+    if (devmode):
+        # Actual TPS voltages
+        tps_debug = {'ORIFICE':float(values['-ORIFICE-']), 'IONEX':V_extractor + float(values['-IONEX-']), 
+            'L1':V_lens1, 'INNER_CYL':V_extractor + V1, 'OUTER_CYL':V_extractor + V2,
+            'MATSUDA':V_matsuda, 'REFERENCE':V_tofreference + V_reference,
+            'DEFL':V_tofreference + V_reference + float(values['-DEFL-']),
+            'DEFLFL':V_tofreference + V_reference + float(values['-DEFLFL-']),
+            'TOFREF':V_tofreference, 'TOFEXTR1':V_tofextractor1, 'RG': V_rg, 'RB': float(values['-RB-']),
+            'DEFL1U': V_extractor + float(values['-DEFL1U-']), 'DEFL1D': V_extractor + float(values['-DEFL1D-']),
+            'DEFL1R': V_extractor + float(values['-DEFL1R-']), 'DEFL1L': V_extractor + float(values['-DEFL1L-']),
+            'L2': V_tofreference + V_reference + float(values['-LENS2-']),
+            'MCP':float(values['-MCP-']), 'PA':float(values['-PA-']), 'DRIFT': float(values['-DRIFT-']),
+            'TOFEXTR2': float(values['-TOFEXTR2-']), 'TOFPULSE': float(values['-TOFPULSE-'])}
+        with open('TPS2_debug.txt', 'w') as f:
+            json.dump(tps_debug, f, indent = 2)
+        for key,value in tps_debug.items():
+            log.debug(f"TPS_{key}: {round(value, 2)}")
 
 
 def set_voltages_tof(values):
@@ -198,14 +216,20 @@ def save_setpoints(set_file, setpoints, values):
 
 def read_setpoints_from_tps():
     """Read current setpoints from TPS"""
-    tps2setpoint = copy.deepcopy(tps1rc)
-    value = np.zeros(1, dtype=np.float64)
-    for key in tps1rc:
-        rv = TwTpsGetTargetValue(tps1rc[key], value)
-        if (rv != TwSuccess and not devmode): 
-            log.error(f'Failed to read {key} voltage: {TwTranslateReturnValue(rv).decode()}.')
-        tps2setpoint[key] = value[0]
-    return tps2setpoint
+    if (devmode):
+        tps2setpoint = copy.deepcopy(tps1rc)
+        with open('TPS2_debug.txt', 'r') as f:
+            tps2setpoint = json.load(f)
+        return tps2setpoint
+    else:
+        tps2setpoint = copy.deepcopy(tps1rc)
+        value = np.zeros(1, dtype=np.float64)
+        for key in tps1rc:
+            rv = TwTpsGetTargetValue(tps1rc[key], value)
+            if (rv != TwSuccess): 
+                log.error(f'Failed to read {key} voltage: {TwTranslateReturnValue(rv).decode()}.')
+            tps2setpoint[key] = value[0]
+        return tps2setpoint
 
 
 def zero_all():
@@ -348,6 +372,7 @@ def scanning_thread(window, values):
     TwAddAttributeDouble('/EnergyData'.encode(), 'EndEnergy'.encode(), end_energy)
     TwAddAttributeDouble('/EnergyData'.encode(), 'StepSize'.encode(), step_size)
     TwAddAttributeDouble('/EnergyData'.encode(), 'TimePerStep'.encode(), time_per_step)
+    TwAddAttributeDouble('/EnergyData'.encode(), 'EnergyOffset'.encode(), calculate_energy_offset(float(values['-ESA_ENERGY-'])))
 
     exit_event.wait(timeout=1)  # additional delay, to make sure TofDaq is ready.
     # start energy scan
@@ -449,6 +474,9 @@ def main():
                 title = 'Keyboard shortcuts', icon = resource_path('tw.ico'), font = ('Courier', 10), non_blocking = True)
         elif event == 'Voltage mapping...':
             sg.popup_no_buttons(
+                'energy_offset = -0.01265*ESA_energy - 0.955 eV',
+                'V* = (Ion_energy + energy_offset - ESA_energy)*V/eV',
+                '',
                 'TPS_Orifice            = Orifice',
                 'TPS_Lens_1             = Lens_1 + V* + 0.955*(ESA_energy*V/eV - 100 V)',
                 'TPS_Deflector_1_up     = Deflector_1_up + V*',
@@ -459,7 +487,7 @@ def main():
                 'TPS_Matsuda            = Matsuda + V* + 0.24*(ESA_energy*V/eV - 100 V)',
                 'TPS_Inner_Cylinder     = -0.26706*ESA_energy*V/eV + V*',
                 'TPS_Outer_Cylinder     = 0.23558*ESA_energy*V/eV + V*',
-                'TPS_TOF_Reference      = (Ion_energy - TOF_energy)*V/eV',
+                'TPS_TOF_Reference      = (Ion_energy + energy_offset - TOF_energy)*V/eV',
                 'TPS_Reference          = Reference + TPS_TOF_Reference',
                 'TPS_Lens_2             = Lens_2 + TPS_Reference',
                 'TPS_Deflector_2        = Deflector_2 + TPS_Reference',
@@ -472,7 +500,6 @@ def main():
                 'TPS_Drift              = Drift',
                 'TPS_PA                 = PA',
                 'TPS_MCP                = MCP',
-                'V* = (Ion_energy - ESA_energy)*V/eV',
                 title = 'Voltage mapping', icon = resource_path('tw.ico'), 
                 font = ('Courier', 10), non_blocking = True, line_width = 100)
         elif event == '-START-':
@@ -515,8 +542,9 @@ def main():
             esa_energy, ion_energy = calculate_energies_from_ESA_voltages(tps2setpoint['INNER_CYL'], tps2setpoint['OUTER_CYL'])
             tof_energy = ion_energy - tps2setpoint['TOFREF']
             V_extractor = ion_energy - esa_energy
+            energy_offset = calculate_energy_offset(esa_energy)
             window['-ESA_ENERGY-'].update(value=round(esa_energy, 2))
-            window['-ION_ENERGY-'].update(value=round(ion_energy, 2))
+            window['-ION_ENERGY-'].update(value=round(ion_energy - energy_offset, 2))
             window['-MCP-'].update(value=round(tps2setpoint['MCP'], 3))
             window['-PA-'].update(value=round(tps2setpoint['PA'], 3))
             window['-DRIFT-'].update(value=round(tps2setpoint['DRIFT'], 3))

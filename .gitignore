@@ -11,3 +11,5 @@ ems_scan.json
 setpoints/
 versionfile.txt
 plotly_stuff/
+plots/
+TPS2_debug.txt
