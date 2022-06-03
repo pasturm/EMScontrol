@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.10.1'
+__version__ = '0.10.2'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021-2022, TOFWERK'
 
@@ -250,7 +250,7 @@ def make_window():
     layout += [[sg.Frame('Energies (eV)', 
         [[sg.Text('Ion energy', size=(15,1)), sg.Input(settings.get('-ION_ENERGY-', '20'), size=(8,1), key='-ION_ENERGY-'),
         sg.Text('ESA energy', size=(15,1)), sg.Input(settings.get('-ESA_ENERGY-', '100'), size=(8,1), key='-ESA_ENERGY-'), 
-        sg.Text('TOF energy', size=(15,1)), sg.Input(settings.get('-TOF_ENERGY-', '55'), size=(8,1), key='-TOF_ENERGY-')]]
+        sg.Text('TOF energy', size=(15,1)), sg.Input(settings.get('-TOF_ENERGY-', '55'), size=(8,1), key='-TOF_ENERGY-')]], expand_x=True
         )]]
 
     layout += [[sg.Frame('Voltages (V)',
@@ -276,7 +276,7 @@ def make_window():
         sg.Text('TOF Extractor 2', size=(15,1)), sg.Input(settings.get('-TOFEXTR2-', '0'), size=(8,1), key='-TOFEXTR2-')],
         [sg.Input(settings.get('-HVPOS-', '1000'), visible=False, key='-HVPOS-'),
         sg.Input(settings.get('-HVNEG-', '-4000'), visible=False, key='-HVNEG-'),
-        sg.Input(settings.get('-HVSUPPLY-', '1'), visible=False, key='-HVSUPPLY-')]]
+        sg.Input(settings.get('-HVSUPPLY-', '1'), visible=False, key='-HVSUPPLY-')]], expand_x=True
         )]]
   
     layout += [[sg.Button('Send all', key='-SET_TPS-'), sg.Button('Read setpoints', key='-READ_FROM_TPS-'),  
@@ -292,13 +292,13 @@ def make_window():
         [sg.Text('Datafile name', size=(15,1)), sg.Input(settings.get('-DATAFILE_NAME-', 'EMSscan_<year>-<month>-<day>_<hour>h<minute>m<second>s.h5'), 
             expand_x=True, justification='left', key='-DATAFILE_NAME-')],
         [sg.Button('Start', size=(7,1), key='-START-'), sg.Button('Cancel', key='-STOP-'),
-        sg.ProgressBar(max_value=100, orientation='h', size=(20, 10), key='-PROGRESS_BAR-', expand_x=True, bar_color=('#FAC761', '#FFFFFF'))]]
+        sg.ProgressBar(max_value=100, orientation='h', size=(20, 10), key='-PROGRESS_BAR-', expand_x=True, bar_color=('#FAC761', '#FFFFFF'))]], expand_x=True
         )]]
 
     layout += [[sg.Multiline(size=(50,5), autoscroll=True, 
         reroute_stdout=True, echo_stdout_stderr=True, write_only=True, key='-LOG_OUTPUT-',
         right_click_menu=['', ['&Clear']], background_color=sg.theme_background_color(), 
-        text_color=sg.theme_element_text_color(), no_scrollbar=True, expand_x=True)]]
+        text_color=sg.theme_element_text_color(), no_scrollbar=True, expand_x=True, expand_y=True)]]
 
     return sg.Window('EMS scan | TOFWERK', layout, icon=resource_path('tw.ico'), resizable=True, finalize=True, 
         return_keyboard_events=False, enable_close_attempted_event=True)
