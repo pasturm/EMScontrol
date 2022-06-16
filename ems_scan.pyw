@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.10.2'
+__version__ = '0.10.3'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021-2022, TOFWERK'
 
@@ -407,6 +407,7 @@ def scanning_thread(window, values):
     TwUpdateUserData('/EnergyData'.encode(), 2, np.array([values['-ION_ENERGY-'], values['-ESA_ENERGY-']], dtype=np.float64))
     log.info('Energy scan completed.')
     log.info(f'Datafile: {desc.currentDataFileName.decode()}')
+    settings['-LASTDATAFILE-'] = desc.currentDataFileName.decode()
     [window[key].update(disabled=value) for key, value in {'-START-': False, '-STOP-': True}.items()]
     window['-PROGRESS_BAR-'].update_bar(0, 100)
     exit_event.clear()  # clear exit flag
