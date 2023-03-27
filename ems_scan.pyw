@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.14.0'
+__version__ = '0.14.1'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021-2023, TOFWERK'
 
@@ -277,11 +277,11 @@ def make_window():
     layout += [[sg.Button('Send all', key='-SET_TPS-'), sg.Button('Read setpoints', key='-READ_FROM_TPS-'),  
         sg.Input(visible=False, enable_events=True, key='-LOAD-'), sg.FileBrowse('Open...', initial_folder='setpoints', target='-LOAD-', key = '-LOAD2-'), 
         sg.Input(visible=False, enable_events=True, key='-SAVE-'), sg.FileSaveAs('Save...', default_extension = 'txt', initial_folder='setpoints', target='-SAVE-', key = '-SAVE2-'),
-        sg.Button('Zero all', key='-ZERO_ALL-'), sg.Text('', size=(2,1))]]
+        sg.Button('Zero all', key='-ZERO_ALL-')]]
     layout += [[sg.Frame('Scan', 
         [[sg.Text('Scanning steps', size=(12,1)), sg.Input(enable_events=True, default_text=settings.get('-SCAN_FILE-', 'steps.txt'), 
             tooltip='Text file with 1st column = ion energy (eV) and 2nd column = step duration (s)', justification='left', key='-SCAN_FILE-', expand_x=True), 
-        sg.FileBrowse('Browse...', initial_folder='steps', target='-SCAN_FILE-', key = '-SCAN_FILE2-')],
+        sg.FileBrowse('Browse...', initial_folder='steps', target='-SCAN_FILE-', key = '-SCAN_FILE2-'), sg.Button('Edit', key='-EDIT-')],
         [sg.Text('Datafile name', size=(12,1)), sg.Input(settings.get('-DATAFILE_NAME-', 'EMSscan_<year>-<month>-<day>_<hour>h<minute>m<second>s.h5'), 
             expand_x=True, justification='left', key='-DATAFILE_NAME-')],
         [sg.Button('Start', size=(4,1), key='-START-'), sg.Button('Cancel', key='-STOP-'),
@@ -578,6 +578,8 @@ def main():
             else:
                 scroll_stepsize = 1
             window[key].update(value=round(float(values[key]) - float(window[key].user_bind_event.delta/120*scroll_stepsize), 2))
+        elif event == '-EDIT-':
+            sg.execute_editor(values['-SCAN_FILE-'])
 
     # save user settings
     for key in SETPOINTS:
