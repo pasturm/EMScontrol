@@ -2,9 +2,9 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.14.1'
+__version__ = '0.14.2'
 __author__ = 'Patrick Sturm'
-__copyright__ = 'Copyright 2021-2023, TOFWERK'
+__copyright__ = 'Copyright 2021-2023 TOFWERK'
 
 import numpy as np
 import pandas as pd
@@ -240,9 +240,7 @@ def zero_all():
 
 def make_window():
     """Make GUI window"""
-    sg.SetOptions(text_justification='right')
-    # sg.theme('SystemDefaultForReal')
-    menu_def = [['&Help', ['&Keyboard shortcuts...', '&Voltage mapping...', '&About...']]]
+    menu_def = [['&Help', ['&Help', '&About']]]
     layout = [[sg.Menu(menu_def, key='-MENU-')]]
     layout += [[sg.Frame('Energies (eV)', 
         [[sg.Text('Ion energy', size=(12,1)), sg.Input(settings.get('-ION_ENERGY-', '20'), size=(8,1), key='-ION_ENERGY-'),
@@ -293,7 +291,7 @@ def make_window():
         text_color=sg.theme_element_text_color(), no_scrollbar=True, expand_x=True, expand_y=True)]]
 
     return sg.Window('EMS scan | TOFWERK', layout, icon=resource_path('tw.ico'), resizable=True, finalize=True, 
-        return_keyboard_events=False, enable_close_attempted_event=True)
+        return_keyboard_events=False, enable_close_attempted_event=True, text_justification='right')
 
 def bind_mouse_wheel(window):
     """Bind mouse wheel to text inputs"""
@@ -453,49 +451,14 @@ def main():
         event, values = window.read()
         if event == sg.WINDOW_CLOSE_ATTEMPTED_EVENT:
             break
-        elif event == 'About...':
-            sg.popup_no_buttons('EMS scan software', 'Version ' + __version__,
+        elif event == 'About':
+            sg.popup_no_buttons('EMS scan software', 'Version ' + __version__, 'Author: ' + __author__,
                 __copyright__, title = 'About', icon = resource_path('tw.ico'), image = resource_path('tw.png'), non_blocking = True)
-        elif event == 'Keyboard shortcuts...':
-            sg.popup_no_buttons(
-                'Send all:       Enter or Scroll Wheel Click', 
-                'Read setpoints: Ctrl-R',
-                'Open...:        Ctrl-O',
-                'Save...:        Ctrl-S', 
-                'Zero all:       Ctrl-Z', 
-                title = 'Keyboard shortcuts', icon = resource_path('tw.ico'), font = ('Courier', 10), non_blocking = True)
-        elif event == 'Voltage mapping...':
-            sg.popup_no_buttons(
-                'How the energies and voltages are translated to TPS values:',
-                '',
-                'energy_offset = -0.01265*ESA_energy - 0.955 eV',
-                'polarity = 1 (positive ion mode) or -1 (negative ion mode)',
-                'V* = (Ion_energy + energy_offset - ESA_energy)*polarity*V/eV',
-                'TPS_Orifice            = Orifice',
-                'TPS_Lens_1             = Lens_1 + V* + 0.955*(ESA_energy*V/eV - 100 V)*polarity',
-                'TPS_Deflector_1_up     = Deflector_1_up + V*',
-                'TPS_Deflector_1_down   = Deflector_1_down + V*',
-                'TPS_Deflector_1_left   = Deflector_1_left + V*',
-                'TPS_Deflector_1_right  = Deflector_1_right + V*',
-                'TPS_Ion_Extractor      = Ion_Extractor + V*',
-                'TPS_Matsuda            = Matsuda + V* + 0.24*(ESA_energy*V/eV - 100 V)*polarity',
-                'TPS_Inner_Cylinder     = -0.26706*ESA_energy*polarity*V/eV + V*',
-                'TPS_Outer_Cylinder     = 0.23558*ESA_energy*polarity*V/eV + V*',
-                'TPS_TOF_Reference      = (Ion_energy + energy_offset - TOF_energy)*polarity*V/eV',
-                'TPS_Reference          = Reference + TPS_TOF_Reference',
-                'TPS_Lens_2             = Lens_2 + TPS_Reference',
-                'TPS_Deflector_2        = Deflector_2 + TPS_Reference',
-                'TPS_Deflector_Flange_2 = Deflector_Flange_2 + TPS_Reference',
-                'TPS_TOF_Extractor_1    = TOF_Extractor_1 + TPS_TOF_Reference', 
-                'TPS_TOF_Extractor_2    = TOF_Extractor_2',
-                'TPS_TOF_Pulse          = TOF_Pulse',
-                'TPS_RG                 = RG + TPS_TOF_Reference*0.25',
-                'TPS_RB                 = RB',
-                'TPS_Drift              = Drift',
-                'TPS_PA                 = PA',
-                'TPS_MCP                = MCP',
-                title = 'Voltage mapping', icon = resource_path('tw.ico'), 
-                font = ('Courier', 10), non_blocking = True, line_width = 100)
+        elif event == 'Help':
+            f = open('help.txt', 'r')
+            sg.popup_no_buttons(f.read(), title = 'Help', icon = resource_path('tw.ico'), 
+                line_width = 80, font = ('Courier', 10), non_blocking = True)
+            f.close()
         elif event == '-START-':
             if is_all_numeric(values):
                 threading.Thread(target=scanning_thread, args=(window,values,), daemon=True).start()
@@ -573,7 +536,7 @@ def main():
         # elif re.search('\+MOUSE WHEEL\+$', event) is not None:
         elif event.endswith('+MOUSE WHEEL+'):
             key = re.split(',', event)[0]
-            if key in ('-ION_ENERGY-', '-STEP_SIZE-'):
+            if key == '-ION_ENERGY-':
                 scroll_stepsize = 0.1
             else:
                 scroll_stepsize = 1

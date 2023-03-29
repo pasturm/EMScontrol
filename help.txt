@@ -1,0 +1,48 @@
+Keyboard shortcuts
+******************
+
+Send all:       Enter or Scroll Wheel Click
+Read setpoints: Ctrl-R
+Open...:        Ctrl-O
+Save...:        Ctrl-S
+Zero all:       Ctrl-Z
+
+
+Scanning file format
+********************
+
+Scanning steps are defined in a text file. The file contains a space or tab-delimited table where each row is a step. The first value of each row is the ion energy in eV and the second value is the step duration in seconds.
+
+
+Voltage mapping
+***************
+
+How voltages and energies from EMS scan are translated to TPS set values:
+
+energy_offset = -0.01265*ESA_energy - 0.955 eV
+polarity      = 1 (positive ion mode) or -1 (negative ion mode)
+Vx            = (Ion_energy + energy_offset - ESA_energy)*polarity*V/eV
+
+TPS_Orifice            = Orifice
+TPS_Lens_1             = Lens_1 + Vx + 0.955*(ESA_energy*V/eV - 100 V)*polarity
+TPS_Deflector_1_up     = Deflector_1_up + Vx
+TPS_Deflector_1_down   = Deflector_1_down + Vx
+TPS_Deflector_1_left   = Deflector_1_left + Vx
+TPS_Deflector_1_right  = Deflector_1_right + Vx
+TPS_Ion_Extractor      = Ion_Extractor + Vx
+TPS_Matsuda            = Matsuda + Vx + 0.24*(ESA_energy*V/eV - 100 V)*polarity
+TPS_Inner_Cylinder     = -0.26706*ESA_energy*polarity*V/eV + Vx
+TPS_Outer_Cylinder     = 0.23558*ESA_energy*polarity*V/eV + Vx
+TPS_TOF_Reference      = (Ion_energy + energy_offset - TOF_energy)*polarity*V/eV
+TPS_Reference          = Reference + TPS_TOF_Reference
+TPS_Lens_2             = Lens_2 + TPS_Reference
+TPS_Deflector_2        = Deflector_2 + TPS_Reference
+TPS_Deflector_Flange_2 = Deflector_Flange_2 + TPS_Reference
+TPS_TOF_Extractor_1    = TOF_Extractor_1 + TPS_TOF_Reference 
+TPS_TOF_Extractor_2    = TOF_Extractor_2
+TPS_TOF_Pulse          = TOF_Pulse
+TPS_RG                 = RG + TPS_TOF_Reference*0.25
+TPS_RB                 = RB
+TPS_Drift              = Drift
+TPS_PA                 = PA
+TPS_MCP                = MCP
