@@ -4,7 +4,7 @@
 
 __version__ = '0.14.2'
 __author__ = 'Patrick Sturm'
-__copyright__ = 'Copyright 2021-2023 TOFWERK'
+__copyright__ = 'Copyright 2021 TOFWERK'
 
 import numpy as np
 import pandas as pd
@@ -24,8 +24,8 @@ from TwTool import *
 
 
 # developer mode for offline testing
-# devmode = False  
-devmode = True  
+devmode = False  
+# devmode = True  
 
 # user settings
 settings = sg.UserSettings(path='.')
@@ -455,7 +455,7 @@ def main():
             sg.popup_no_buttons('EMS scan software', 'Version ' + __version__, 'Author: ' + __author__,
                 __copyright__, title = 'About', icon = resource_path('tw.ico'), image = resource_path('tw.png'), non_blocking = True)
         elif event == 'Help':
-            f = open('help.txt', 'r')
+            f = open(resource_path('help.txt'), 'r')
             sg.popup_no_buttons(f.read(), title = 'Help', icon = resource_path('tw.ico'), 
                 line_width = 80, font = ('Courier', 10), non_blocking = True)
             f.close()

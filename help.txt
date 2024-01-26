@@ -1,6 +1,10 @@
+Scanning file format
+********************
+Scanning steps are defined in a text file. The file contains a space or tab-delimited table where each row is a step. The first value of each row is the ion energy in eV and the second value is the step duration in seconds.
+
+
 Keyboard shortcuts
 ******************
-
 Send all:       Enter or Scroll Wheel Click
 Read setpoints: Ctrl-R
 Open...:        Ctrl-O
@@ -8,21 +12,12 @@ Save...:        Ctrl-S
 Zero all:       Ctrl-Z
 
 
-Scanning file format
-********************
-
-Scanning steps are defined in a text file. The file contains a space or tab-delimited table where each row is a step. The first value of each row is the ion energy in eV and the second value is the step duration in seconds.
-
-
 Voltage mapping
 ***************
-
 How voltages and energies from EMS scan are translated to TPS set values:
-
 energy_offset = -0.01265*ESA_energy - 0.955 eV
 polarity      = 1 (positive ion mode) or -1 (negative ion mode)
 Vx            = (Ion_energy + energy_offset - ESA_energy)*polarity*V/eV
-
 TPS_Orifice            = Orifice
 TPS_Lens_1             = Lens_1 + Vx + 0.955*(ESA_energy*V/eV - 100 V)*polarity
 TPS_Deflector_1_up     = Deflector_1_up + Vx

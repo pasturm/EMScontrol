@@ -6,7 +6,7 @@ pyinstaller_versionfile.create_versionfile(
     company_name="Tofwerk",
     file_description="EMS scan",
     internal_name="EMS scan",
-    legal_copyright="© 2021-2023, TOFWERK",
+    legal_copyright="Copyright 2021, TOFWERK",
     original_filename="EMS scan.exe",
     product_name="EMS scan"
 )

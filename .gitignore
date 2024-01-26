@@ -12,4 +12,7 @@ setpoints/
 versionfile.txt
 plotly_stuff/
 plots/
-TPS2_debug.txt
+TPS2_debug*.txt
+Archive/
+export/
+steps/
