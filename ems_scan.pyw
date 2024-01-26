@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.14.2'
+__version__ = '0.14.3'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021 TOFWERK'
 
@@ -242,7 +242,7 @@ def make_window():
     """Make GUI window"""
     menu_def = [['&Help', ['&Help', '&About']]]
     layout = [[sg.Menu(menu_def, key='-MENU-')]]
-    layout += [[sg.Frame('Energies (eV)', 
+    layout += [[sg.Frame('Energy per charge (eV/e)', 
         [[sg.Text('Ion energy', size=(12,1)), sg.Input(settings.get('-ION_ENERGY-', '20'), size=(8,1), key='-ION_ENERGY-'),
         sg.Text('ESA energy', size=(15,1)), sg.Input(settings.get('-ESA_ENERGY-', '100'), size=(8,1), key='-ESA_ENERGY-'), 
         sg.Text('TOF energy', size=(15,1)), sg.Input(settings.get('-TOF_ENERGY-', '55'), size=(8,1), key='-TOF_ENERGY-')]], expand_x=True
@@ -277,10 +277,10 @@ def make_window():
         sg.Input(visible=False, enable_events=True, key='-SAVE-'), sg.FileSaveAs('Save...', default_extension = 'txt', initial_folder='setpoints', target='-SAVE-', key = '-SAVE2-'),
         sg.Button('Zero all', key='-ZERO_ALL-')]]
     layout += [[sg.Frame('Scan', 
-        [[sg.Text('Scanning steps', size=(12,1)), sg.Input(enable_events=True, default_text=settings.get('-SCAN_FILE-', 'steps.txt'), 
+        [[sg.Text('Scanning steps', size=(12,1), justification='left'), sg.Input(enable_events=True, default_text=settings.get('-SCAN_FILE-', 'steps.txt'), 
             tooltip='Text file with 1st column = ion energy (eV) and 2nd column = step duration (s)', justification='left', key='-SCAN_FILE-', expand_x=True), 
         sg.FileBrowse('Browse...', initial_folder='steps', target='-SCAN_FILE-', key = '-SCAN_FILE2-'), sg.Button('Edit', key='-EDIT-')],
-        [sg.Text('Datafile name', size=(12,1)), sg.Input(settings.get('-DATAFILE_NAME-', 'EMSscan_<year>-<month>-<day>_<hour>h<minute>m<second>s.h5'), 
+        [sg.Text('Datafile name', size=(12,1), justification='left'), sg.Input(settings.get('-DATAFILE_NAME-', 'EMSscan_<year>-<month>-<day>_<hour>h<minute>m<second>s.h5'), 
             expand_x=True, justification='left', key='-DATAFILE_NAME-')],
         [sg.Button('Start', size=(4,1), key='-START-'), sg.Button('Cancel', key='-STOP-'),
         sg.ProgressBar(max_value=100, orientation='h', size=(20, 10), key='-PROGRESS_BAR-', expand_x=True, bar_color=('#FAC761', '#FFFFFF'))]], expand_x=True
