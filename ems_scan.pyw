@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.14.3'
+__version__ = '0.14.4'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021 TOFWERK'
 
@@ -182,7 +182,7 @@ def set_voltages_ea(values, ion_energy, polarity):
             'L2': V_tofreference + V_reference + float(values['-LENS2-']),
             'MCP':float(values['-MCP-']), 'PA':float(values['-PA-']), 'DRIFT': float(values['-DRIFT-']),
             'TOFEXTR2': float(values['-TOFEXTR2-']), 'TOFPULSE': float(values['-TOFPULSE-']),
-            'POLARITY': get_ionmode()}
+            'POLARITY': get_ionmode(), 'HVPOS': float(values['-HVPOS-']), 'HVNEG': float(values['-HVNEG-'])}
         with open('TPS2_debug.txt', 'w') as f:
             json.dump(tps_debug, f, indent = 2)
         for key,value in tps_debug.items():
@@ -527,6 +527,8 @@ def main():
                 window['-TOF_ENERGY-'].update(value=round(tof_energy, 2))
                 window['-TOFEXTR1-'].update(value=round(tps2setpoint['TOFEXTR1'] + (tof_energy - ion_energy)*polarity, 3))
                 window['-IONEX-'].update(value=round(tps2setpoint['IONEX'] - V_extractor, 3))
+                window['-HVPOS-'].update(value=round(tps2setpoint['HVPOS'], 3))
+                window['-HVNEG-'].update(value=round(tps2setpoint['HVNEG'], 3))
                 log.info('Updated set values from current TPS setpoints.')
         elif event in ('-ZERO_ALL-', '+ZERO+'):  # Ctrl-z
             log.info('All voltages set to zero.')
