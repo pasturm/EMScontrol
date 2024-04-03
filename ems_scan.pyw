@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.14.4'
+__version__ = '0.14.5'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021 TOFWERK'
 
@@ -148,7 +148,7 @@ def set_voltages_ea(values, ion_energy, polarity):
     V_reference = float(values['-REF-'])
     V_tofreference = (ion_energy + energy_offset - float(values['-TOF_ENERGY-']))*polarity  # from LV channel -> with sign
     V_tofextractor1 = V_tofreference + float(values['-TOFEXTR1-'])  # from LV channel -> with sign, relative to TOF reference
-    rg_correction = 0.25  # ion energy correction of RG in V/eV
+    rg_correction = 0.25*polarity  # ion energy correction of RG in V/eV
     V_rg = float(values['-RG-']) + V_tofreference*rg_correction  # -RG- is set value if TOFREF = 0 V (ion energy - tof energy = 0 eV)
     V_lens1 = V_extractor + float(values['-LENS1-']) + 0.955*(float(values['-ESA_ENERGY-'])-100)*polarity
     V_matsuda = V_extractor + float(values['-MATSUDA-']) + 0.24*(float(values['-ESA_ENERGY-'])-100)*polarity
@@ -166,9 +166,13 @@ def set_voltages_ea(values, ion_energy, polarity):
     tps_error_log(TwTpsSetTargetValue(tps1rc['L2'], V_tofreference + V_reference + float(values['-LENS2-'])), 'L2')
     tps_error_log(TwTpsSetTargetValue(tps1rc['DEFL'], V_tofreference + V_reference + float(values['-DEFL-'])), 'DEFL')
     tps_error_log(TwTpsSetTargetValue(tps1rc['DEFLFL'], V_tofreference + V_reference + float(values['-DEFLFL-'])), 'DEFLFL')
-    tps_error_log(TwTpsSetTargetValue(tps1rc['TOFREF'], V_tofreference), 'TOFREF')
-    tps_error_log(TwTpsSetTargetValue(tps1rc['TOFEXTR1'], V_tofextractor1), 'TOFEXTR1')
     tps_error_log(TwTpsSetTargetValue(tps1rc['RG'], V_rg), 'RG')
+    if (polarity == 1):  # TPS does not switch LVS pulser channels in neg mode
+        tps_error_log(TwTpsSetTargetValue(tps1rc['TOFREF'], V_tofreference), 'TOFREF')
+        tps_error_log(TwTpsSetTargetValue(tps1rc['TOFEXTR1'], V_tofextractor1), 'TOFEXTR1')
+    else:
+        tps_error_log(TwTpsSetTargetValue(tps1rc['TOFREF'], V_tofextractor1), 'TOFREF')
+        tps_error_log(TwTpsSetTargetValue(tps1rc['TOFEXTR1'], V_tofreference), 'TOFEXTR1')
     if (devmode):
         # Actual TPS voltages
         tps_debug = {'ORIFICE':float(values['-ORIFICE-']), 'IONEX':V_extractor + float(values['-IONEX-']), 
@@ -176,13 +180,19 @@ def set_voltages_ea(values, ion_energy, polarity):
             'MATSUDA':V_matsuda, 'REFERENCE':V_tofreference + V_reference,
             'DEFL':V_tofreference + V_reference + float(values['-DEFL-']),
             'DEFLFL':V_tofreference + V_reference + float(values['-DEFLFL-']),
-            'TOFREF':V_tofreference, 'TOFEXTR1':V_tofextractor1, 'RG': V_rg, 'RB': float(values['-RB-']),
+            'RG': V_rg, 'RB': float(values['-RB-']),
             'DEFL1U': V_extractor + float(values['-DEFL1U-']), 'DEFL1D': V_extractor + float(values['-DEFL1D-']),
             'DEFL1R': V_extractor + float(values['-DEFL1R-']), 'DEFL1L': V_extractor + float(values['-DEFL1L-']),
             'L2': V_tofreference + V_reference + float(values['-LENS2-']),
             'MCP':float(values['-MCP-']), 'PA':float(values['-PA-']), 'DRIFT': float(values['-DRIFT-']),
             'TOFEXTR2': float(values['-TOFEXTR2-']), 'TOFPULSE': float(values['-TOFPULSE-']),
             'POLARITY': get_ionmode(), 'HVPOS': float(values['-HVPOS-']), 'HVNEG': float(values['-HVNEG-'])}
+        if (polarity == 1):
+            tps_debug['TOFREF'] = V_tofreference
+            tps_debug['TOFEXTR1'] = V_tofextractor1
+        else:
+            tps_debug['TOFREF'] = V_tofextractor1
+            tps_debug['TOFEXTR1'] = V_tofreference
         with open('TPS2_debug.txt', 'w') as f:
             json.dump(tps_debug, f, indent = 2)
         for key,value in tps_debug.items():
@@ -499,9 +509,15 @@ def main():
             tps2setpoint = read_setpoints_from_tps()
             if (tps2setpoint['POLARITY']!=0):
                 polarity = 1 if (tps2setpoint['POLARITY']==1) else -1
-                rg_correction = 0.25  # ion energy correction of RG in V/eV
+                rg_correction = 0.25*polarity  # ion energy correction of RG in V/eV
                 esa_energy, ion_energy = calculate_energies_from_ESA_voltages(tps2setpoint['INNER_CYL'], tps2setpoint['OUTER_CYL'], polarity)
-                tof_energy = ion_energy - tps2setpoint['TOFREF']*polarity
+                if (polarity == 1):  # TOF Reference and TOF Extr. 1 are switched in neg mode.
+                    tofref = tps2setpoint['TOFREF']
+                    tofextr1 = tps2setpoint['TOFEXTR1']
+                else:
+                    tofref = tps2setpoint['TOFEXTR1']
+                    tofextr1 = tps2setpoint['TOFREF']
+                tof_energy = ion_energy - tofref*polarity
                 V_extractor = (ion_energy - esa_energy)*polarity
                 energy_offset = calculate_energy_offset(esa_energy)
                 window['-ESA_ENERGY-'].update(value=round(esa_energy, 2))
@@ -512,7 +528,7 @@ def main():
                 window['-TOFEXTR2-'].update(value=round(tps2setpoint['TOFEXTR2'], 3))
                 window['-TOFPULSE-'].update(value=round(tps2setpoint['TOFPULSE'], 3))
                 window['-RB-'].update(value=round(tps2setpoint['RB'], 3))
-                window['-RG-'].update(value=round(tps2setpoint['RG'] - tps2setpoint['TOFREF']*rg_correction, 3))
+                window['-RG-'].update(value=round(tps2setpoint['RG'] - tofref*rg_correction, 3))
                 window['-ORIFICE-'].update(value=round(tps2setpoint['ORIFICE'], 3))
                 window['-LENS1-'].update(value=round(tps2setpoint['L1'] - V_extractor - 0.955*(esa_energy - 100)*polarity, 2))
                 window['-DEFL1U-'].update(value=round(tps2setpoint['DEFL1U'] - V_extractor, 3))
@@ -525,7 +541,7 @@ def main():
                 window['-DEFLFL-'].update(value=round(tps2setpoint['DEFLFL'] - tps2setpoint['REFERENCE'], 3))
                 window['-REF-'].update(value=round(tps2setpoint['REFERENCE'] + (tof_energy - ion_energy)*polarity, 3))
                 window['-TOF_ENERGY-'].update(value=round(tof_energy, 2))
-                window['-TOFEXTR1-'].update(value=round(tps2setpoint['TOFEXTR1'] + (tof_energy - ion_energy)*polarity, 3))
+                window['-TOFEXTR1-'].update(value=round(tofextr1 + (tof_energy - ion_energy)*polarity, 3))
                 window['-IONEX-'].update(value=round(tps2setpoint['IONEX'] - V_extractor, 3))
                 window['-HVPOS-'].update(value=round(tps2setpoint['HVPOS'], 3))
                 window['-HVNEG-'].update(value=round(tps2setpoint['HVNEG'], 3))
