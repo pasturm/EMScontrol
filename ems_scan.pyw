@@ -2,7 +2,7 @@
 
 """EMS voltage control and energy scanning"""
 
-__version__ = '0.14.5'
+__version__ = '0.14.6'
 __author__ = 'Patrick Sturm'
 __copyright__ = 'Copyright 2021 TOFWERK'
 
@@ -137,6 +137,15 @@ def get_ionmode():
             return 0
     else:
         return 1
+
+def get_ionmode_string():
+    ionmode = get_ionmode()
+    if (ionmode == 1):
+        return 'positive'
+    elif (ionmode == -1):
+        return 'negative'
+    else:
+        return 'undefined'
 
 def set_voltages_ea(values, ion_energy, polarity):
     """
@@ -277,7 +286,8 @@ def make_window():
         sg.Text('TOF Extractor 1', size=(15,1)), sg.Input(settings.get('-TOFEXTR1-', '0'), size=(8,1), key='-TOFEXTR1-'),
         sg.Text('MCP', size=(15,1)), sg.Input(settings.get('-MCP-', '0'), size=(8,1), key='-MCP-')],
         [sg.Text('Ion Extractor', size=(12,1)), sg.Input(settings.get('-IONEX-', '0'), size=(8,1), key='-IONEX-'), 
-        sg.Text('TOF Extractor 2', size=(15,1)), sg.Input(settings.get('-TOFEXTR2-', '0'), size=(8,1), key='-TOFEXTR2-')],
+        sg.Text('TOF Extractor 2', size=(15,1)), sg.Input(settings.get('-TOFEXTR2-', '0'), size=(8,1), key='-TOFEXTR2-'),
+        sg.Text('Ion mode', size=(15,1)), sg.Text(get_ionmode_string(), size=(8,1), justification='center')],
         [sg.Input(settings.get('-HVPOS-', '1000'), visible=False, key='-HVPOS-'),
         sg.Input(settings.get('-HVNEG-', '-4000'), visible=False, key='-HVNEG-'),
         sg.Input(settings.get('-HVSUPPLY-', '1'), visible=False, key='-HVSUPPLY-')]], expand_x=True

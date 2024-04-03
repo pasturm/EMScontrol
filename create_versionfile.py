@@ -2,7 +2,7 @@ import pyinstaller_versionfile
 
 pyinstaller_versionfile.create_versionfile(
     output_file="versionfile.txt",
-    version="0.14.4",
+    version="0.14.6",
     company_name="Tofwerk",
     file_description="EMS scan",
     internal_name="EMS scan",
